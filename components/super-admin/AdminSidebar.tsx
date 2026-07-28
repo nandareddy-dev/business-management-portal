@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Building2, TrendingUp, CreditCard,
   Settings, LogOut, ChevronLeft, ChevronRight,
   Shield, Menu, X, Activity, Users, BarChart3, Key,
-  Database, Headphones, Mail, Clock
+  Database, Headphones, Mail, Clock, MessageSquare
 } from 'lucide-react'
 
 const NAV = [
@@ -23,6 +23,7 @@ const NAV = [
   { href: '/admin/system-monitor',   icon: Database,        label: 'System Monitor' },
   { href: '/admin/backup',           icon: Database,        label: 'Backup' },
   { href: '/admin/support-tickets',  icon: Headphones,      label: 'Support' },
+  { href: '/admin/support-inquiries', icon: MessageSquare,  label: 'Web Inquiries' },
   { href: '/admin/email-templates',  icon: Mail,            label: 'Email' },
   { href: '/admin/settings',         icon: Settings,        label: 'Settings' },
 ]
