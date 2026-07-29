@@ -156,7 +156,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm mt-6" style={{ color: '#9A8F82' }}>
             Don&apos;t have an account?{' '}
-            <a href="/signup" className="font-bold hover:underline" style={{ color: '#1C1712' }}>Sign Up Free</a>
+            <a href="/#pricing" className="font-bold hover:underline" style={{ color: '#1C1712' }}>Sign Up Free</a>
           </p>
         </div>
       </div>

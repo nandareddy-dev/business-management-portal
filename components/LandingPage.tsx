@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import GKCRMPricing from "@/app/pricing/page"
 import GKFooter from "@/components/GKFooter"
+import GKHeader from "@/components/GKHeader"
 
 // ── DATA ──────────────────────────────────────────────────────────────────
 
@@ -478,15 +479,11 @@ function HowItWorksSection() {
   )
 }
 
-// Replace the `function TestimonialsGrid() { ... }` block in LandingPage.tsx with this.
-// Also rename the render call: <TestimonialsGrid /> → <TestimonialsOwlCarousel />
-
 function TestimonialsOwlCarousel() {
   const [startIdx, setStartIdx] = useState(0)
   const [cardsPerView, setCardsPerView] = useState(3)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Responsive cards-per-view — className-based, matches Tailwind breakpoints
   useEffect(() => {
     const updateCards = () => {
       if (window.innerWidth < 768) setCardsPerView(1)
@@ -594,10 +591,8 @@ function TestimonialsOwlCarousel() {
 
 export default function LandingPage() {
   const router = useRouter()
-  const [activeNav, setActiveNav]       = useState('')
   const [activeFaq, setActiveFaq]       = useState<number | null>(null)
   const [industryIdx, setIndustryIdx]   = useState(0)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Support form state (wired to /api/support-inquiry) ──
   const [supportForm, setSupportForm]     = useState({ name: '', email: '', message: '' })
@@ -611,6 +606,17 @@ export default function LandingPage() {
 
   useEffect(() => { setTimeout(() => setHeroVisible(true), 80) }, [])
 
+  // URL hash (e.g. /#pricing) ఉంటే, page load అయిన తర్వాత ఆ section కి scroll చేయు
+  useEffect(() => {
+    if (window.location.hash) {
+      const id = window.location.hash.replace('#', '')
+      const timer = setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setStatsVisible(true) },
@@ -622,8 +628,6 @@ export default function LandingPage() {
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
-    setActiveNav(id)
-    setMobileMenuOpen(false)
   }
 
   // ── Support form submit handler ──
@@ -657,14 +661,6 @@ export default function LandingPage() {
       setSupportLoading(false)
     }
   }
-
-  const navLinks = [
-    { label: 'Features',   id: 'features' },
-    { label: 'AI Tools',   id: 'ai-tools' },
-    { label: 'Industries', id: 'industries' },
-    { label: 'Pricing',    id: 'pricing' },
-    { label: 'Support',    id: 'support' },
-  ]
 
   return (
     <>
@@ -714,65 +710,13 @@ export default function LandingPage() {
         .gk-out-4 { animation: gkDash 2.5s linear 2.0s infinite; }
       `}</style>
 
-      <div className="min-h-screen bg-[#F5F0E8] overflow-x-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div className="bg-[#F5F0E8] overflow-x-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
         {/* ── LIVE TICKER ── */}
         <LiveTicker />
 
         {/* ── NAVBAR ── */}
-        <nav className="sticky top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E2D9C8] shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-sm font-bold text-white shadow-md">G</div>
-              <span className="font-serif text-xl text-[#1C1712]">GK · CRM</span>
-              <span className="hidden md:block text-[9px] font-bold text-[#B8860B] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest ml-1">Premium</span>
-            </div>
-
-            {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-6 lg:gap-8">
-              {navLinks.map(item => (
-                <button key={item.id} onClick={() => scrollTo(item.id)}
-                  className={`text-sm font-medium transition-all relative pb-0.5 ${activeNav === item.id ? 'text-[#B8860B]' : 'text-[#7A6E60] hover:text-[#1C1712]'}`}>
-                  {item.label}
-                  {activeNav === item.id && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B8860B] rounded-full" />}
-                </button>
-              ))}
-            </div>
-
-            {/* Right CTA */}
-            <div className="flex items-center gap-2 md:gap-3">
-              <button onClick={() => router.push('/login')}
-                className="hidden md:block text-sm font-medium text-[#7A6E60] hover:text-[#1C1712] transition-colors">
-                Sign In
-              </button>
-              <button onClick={() => scrollTo('pricing')}
-                className="bg-[#1C1712] text-white text-xs md:text-sm font-semibold px-3 md:px-5 py-2 md:py-2.5 rounded-xl hover:bg-[#B8860B] transition-all duration-300 shadow-md">
-                Start Free →
-              </button>
-              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl border border-[#E2D9C8] text-[#7A6E60]">
-                {mobileMenuOpen ? '✕' : '☰'}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-[#E2D9C8] px-4 py-3 space-y-1">
-              {navLinks.map(item => (
-                <button key={item.id} onClick={() => scrollTo(item.id)}
-                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-[#7A6E60] hover:bg-[#F5F0E8] hover:text-[#1C1712] transition-colors">
-                  {item.label}
-                </button>
-              ))}
-              <button onClick={() => { router.push('/login'); setMobileMenuOpen(false) }}
-                className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium text-[#7A6E60] hover:bg-[#F5F0E8] transition-colors">
-                Sign In
-              </button>
-            </div>
-          )}
-        </nav>
+        <GKHeader />
 
         {/* ── HERO ── */}
         <section className="relative max-w-6xl mx-auto px-4 md:px-6 pt-12 md:pt-20 pb-12 md:pb-20 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-14 items-center overflow-hidden">
@@ -1071,7 +1015,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── TESTIMONIALS ── */}
-        <TestimonialsOwlCarousel  />
+        <TestimonialsOwlCarousel />
 
         {/* ── FAQ ── */}
         <section className="max-w-3xl mx-auto px-4 md:px-6 py-16 md:py-24">
@@ -1106,8 +1050,8 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-start">
             <div className="space-y-3">
               {[
-                { icon: '📧', label: 'Email',    value: 'support@gkcrm.in',    sub: 'Reply within 24 hours' },
-                { icon: '📞', label: 'Phone',    value: '+91 98765 43210',      sub: 'Mon–Sat, 9AM – 7PM' },
+                { icon: '📧', label: 'Email',    value: 'supportcrm@gkdigitalsolutions.in',    sub: 'Reply within 24 hours' },
+                { icon: '📞', label: 'Phone',    value: '+91 7095815427',      sub: 'Mon–Sat, 9:00AM – 7:00PM' },
                 { icon: '💬', label: 'WhatsApp', value: 'Chat instantly',       sub: 'For urgent support' },
                 { icon: '📍', label: 'Location', value: 'Hyderabad, Telangana', sub: 'India' },
               ].map(item => (

@@ -30,14 +30,6 @@ const WhatsAppIcon = () => (
 
 // ── Data ──────────────────────────────────────────────────────────────────
 
-const trustBadges = [
-  { icon: '🔐', label: 'SSL Secured',    sub: '256-bit encryption' },
-  { icon: '🛡️', label: 'Supabase RLS',  sub: 'Row-level security' },
-  { icon: '💳', label: 'Razorpay',       sub: 'Secure payments' },
-  { icon: '🇮🇳', label: 'Made in India', sub: 'Hyderabad, Telangana' },
-  { icon: '☁️', label: 'Vercel Edge',   sub: '99.9% uptime SLA' },
-]
-
 // Internal nav links — use Next.js Link
 const productLinks = [
   { label: 'Features',   href: '/#features' },
@@ -75,7 +67,7 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
       {/* ── 3. MAIN FOOTER GRID ────────────────────────────────────── */}
       <div className="bg-[#F5F0E8] border-t border-[#E2D9C8] pt-12 md:pt-16">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-6 mb-10 md:mb-12 pb-10 md:pb-12 border-b border-[#E2D9C8]">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-6 pb-10 md:pb-12">
 
             {/* Col 1–2: Brand + Contact + Social */}
             <div className="col-span-2">
@@ -90,17 +82,17 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
 
               {/* Contact info */}
               <div className="space-y-2 mb-5">
-                <a href="mailto:support@gkcrm.in"
+                <a href="mailto:supportcrm@gkdigitalsolutions.in"
                   className="flex items-center gap-2.5 text-sm text-[#7A6E60] hover:text-[#1C1712] transition-colors group">
                   <span className="w-7 h-7 bg-white border border-[#E2D9C8] rounded-lg flex items-center justify-center text-xs flex-shrink-0 group-hover:border-[#B8860B]/40 group-hover:bg-amber-50 transition-all">📧</span>
-                  support@gkcrm.in
+                  supportcrm@gkdigitalsolutions.in
                 </a>
-                <a href="tel:+919876543210"
+                <a href="tel:+917095815427"
                   className="flex items-center gap-2.5 text-sm text-[#7A6E60] hover:text-[#1C1712] transition-colors group">
                   <span className="w-7 h-7 bg-white border border-[#E2D9C8] rounded-lg flex items-center justify-center text-xs flex-shrink-0 group-hover:border-[#B8860B]/40 group-hover:bg-amber-50 transition-all">📞</span>
-                  +91 98765 43210
+                  +91 7095815427
                 </a>
-                <a href="https://wa.me/919876543210" target="_blank" rel="noreferrer"
+                <a href="https://wa.me/917095815427" target="_blank" rel="noreferrer"
                   className="flex items-center gap-2.5 text-sm text-[#7A6E60] hover:text-[#1C1712] transition-colors group">
                   <span className="w-7 h-7 bg-white border border-[#E2D9C8] rounded-lg flex items-center justify-center text-xs flex-shrink-0 group-hover:border-[#B8860B]/40 group-hover:bg-amber-50 transition-all">💬</span>
                   WhatsApp Support
@@ -164,7 +156,7 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
             <div>
               <p className="text-[10px] font-bold text-[#9A8F82] uppercase tracking-[3px] mb-4">Get Started</p>
               <div className="space-y-2.5">
-                <Link href="/signup"
+                <Link href="/#pricing"
                   className="block w-full bg-[#1C1712] text-white text-xs font-bold text-center py-2.5 px-4 rounded-xl hover:bg-[#B8860B] transition-all duration-300">
                   Start Free Trial →
                 </Link>
@@ -178,23 +170,6 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
                 </a>
                 <p className="text-[10px] text-center text-[#B8B0A0]">14-day free · No card needed</p>
               </div>
-            </div>
-          </div>
-
-          {/* ── 4. TRUST BADGES ────────────────────────────────────── */}
-          <div className="mb-8">
-            <p className="text-[9px] font-bold text-[#C5BFB3] uppercase tracking-[3px] text-center mb-4">Trusted & Secured</p>
-            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-              {trustBadges.map((badge, i) => (
-                <div key={i}
-                  className="flex items-center gap-2 bg-white border border-[#E2D9C8] rounded-full px-3 md:px-4 py-1.5 md:py-2 hover:border-[#B8860B]/30 hover:shadow-sm transition-all cursor-default group">
-                  <span className="text-sm">{badge.icon}</span>
-                  <div>
-                    <p className="text-[10px] font-bold text-[#1C1712] leading-none group-hover:text-[#B8860B] transition-colors">{badge.label}</p>
-                    <p className="text-[8px] text-[#B8B0A0] leading-none mt-0.5 hidden md:block">{badge.sub}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
