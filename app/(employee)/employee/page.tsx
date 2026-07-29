@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, FileText, Clock, User, LayoutDashboard, ArrowUpRight, LogOut, MapPin } from 'lucide-react'
 import { AttendanceMarkButton } from '@/components/employee/attendance-mark-button'
+import { PunchCard } from '@/components/employee/punch-card'
+import { HomeTabs } from '@/components/employee/home-tabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +18,7 @@ interface Employee {
   designation?: string
   department?: string
   permissions?: string[]
+  photo_url?: string
 }
 
 interface Attendance {
@@ -31,6 +34,12 @@ interface LeaveBalance {
   cl_total: number; cl_used: number
   sl_total: number; sl_used: number
   el_total: number; el_used: number
+}
+
+interface ActiveBreak {
+  id: string
+  break_type: string
+  start_time: string
 }
 
 export default async function EmployeePortalPage() {
@@ -78,15 +87,14 @@ export default async function EmployeePortalPage() {
     { data: leaveBalance },
     { data: pendingLeaves },
     { data: todayReport },
+    { data: activeBreak },
   ] = await Promise.all([
     supabase.from('attendance').select('*').eq('employee_id', employee.id).eq('attendance_date', today).maybeSingle() as unknown as Promise<{ data: Attendance | null }>,
     supabase.from('leave_balances').select('*').eq('employee_id', employee.id).eq('year', new Date().getFullYear()).eq('month', new Date().getMonth() + 1).maybeSingle() as unknown as Promise<{ data: LeaveBalance | null }>,
     supabase.from('leave_applications').select('*').eq('employee_id', employee.id).eq('status', 'pending'),
     supabase.from('work_reports').select('*').eq('employee_id', employee.id).eq('report_date', today).maybeSingle(),
+    supabase.from('breaks').select('id, break_type, start_time').eq('employee_id', employee.id).eq('break_date', today).is('end_time', null).maybeSingle() as unknown as Promise<{ data: ActiveBreak | null }>,
   ])
-
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   const VALID_MODULES = ['pipeline', 'projects', 'hr', 'finance']
   const hasCRMAccess = Array.isArray(employee.permissions) &&
@@ -97,7 +105,15 @@ export default async function EmployeePortalPage() {
   const checkInAddress  = todayAttendance?.check_in_address ?? null
   const checkOutAddress = todayAttendance?.check_out_address ?? null
 
-  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+  function calcWorkingHrs(checkIn?: string, checkOut?: string) {
+    if (!checkIn) return '00:00'
+    const end = checkOut ? new Date(checkOut) : new Date()
+    const diffMs = end.getTime() - new Date(checkIn).getTime()
+    if (diffMs <= 0) return '00:00'
+    const h = Math.floor(diffMs / 3600000), m = Math.floor((diffMs % 3600000) / 60000)
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  }
+
   const ringR = 22
   const ringC = 2 * Math.PI * ringR
 
@@ -114,72 +130,41 @@ export default async function EmployeePortalPage() {
     { label: 'My profile',    sub: 'View details',      icon: User,      href: '/employee/profile' },
   ]
 
+  const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
+
   return (
-    <div className="h-screen bg-[#EFE9DD] overflow-hidden flex flex-col">
-      <div className="max-w-6xl mx-auto w-full px-3 py-3 lg:px-6 lg:py-4 flex-1 flex flex-col min-h-0">
+    <div className="min-h-screen bg-[#EFE9DD] overflow-y-auto">
+      <div className="max-w-6xl mx-auto w-full px-3 py-3 lg:px-6 lg:py-4">
 
-        {/* ── BLUEPRINT FRAME ── */}
-        <div className="relative border border-[#B8860B]/35 rounded-none flex-1 flex flex-col min-h-0 overflow-hidden">
-
-          {/* Corner brackets (inset, so they never overflow the frame) */}
+        <div className="relative border border-[#B8860B]/35">
           <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
           <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
           <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
           <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
 
-          {/* ── HERO ── */}
-          <div className="bg-[#1C1712] px-6 py-4 lg:px-8 lg:py-5 relative overflow-hidden flex-shrink-0">
-            <div className="absolute inset-0 opacity-[0.05]" style={{
-              backgroundImage: 'linear-gradient(#B8860B 1px, transparent 1px), linear-gradient(90deg, #B8860B 1px, transparent 1px)',
-              backgroundSize: '28px 28px'
-            }} />
-            <div className="relative flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-6 h-[1px] bg-[#B8860B]" />
-                  <p className="text-[9px] tracking-[4px] text-[#B8860B] font-medium uppercase" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
-                    Employee Ledger
-                  </p>
-                </div>
-                <h1 className="text-[22px] lg:text-[26px] leading-tight text-white mb-1" style={{ fontFamily: 'Georgia, "Playfair Display", serif', fontStyle: 'italic', fontWeight: 500 }}>
-                  {greeting}, {employee.full_name?.split(' ')[0]}.
-                </h1>
-                <div className="flex items-center gap-2 text-[10px] tracking-[1.5px] text-white/40 uppercase" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
-                  <span>{employee.employee_code ?? employee.employee_id}</span>
-                  <span className="text-[#B8860B]/50">/</span>
-                  <span>{employee.designation ?? 'Employee'}</span>
-                  <span className="text-[#B8860B]/50">/</span>
-                  <span>{employee.department ?? '—'}</span>
-                </div>
-              </div>
+          {/* ── PUNCH CARD (photo, breaks, punch in/out/working hrs) ── */}
+          <PunchCard
+            employeeId={employee.id}
+            fullName={employee.full_name}
+            designation={employee.designation}
+            photoUrl={employee.photo_url}
+            checkIn={todayAttendance?.check_in}
+            checkOut={todayAttendance?.check_out}
+            workingHrs={calcWorkingHrs(todayAttendance?.check_in, todayAttendance?.check_out)}
+            activeBreak={activeBreak}
+          />
 
-              {todayAttendance && (
-                <div className="flex items-center gap-2.5 flex-shrink-0">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
-                  </span>
-                  <span className="text-[11px] text-white/70 tracking-wide whitespace-nowrap">
-                    Present today
-                    {todayAttendance?.check_in && <span className="text-[#D4A537]"> · in at {fmtTime(todayAttendance.check_in)}</span>}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* ── TABS: Communication / Offers / Life at Cogent ── */}
+          <HomeTabs />
 
-          {/* ── BODY: two-column on desktop, stacked on mobile, scrolls internally if needed ── */}
-          <div className="lg:grid lg:grid-cols-[1fr_300px] flex-1 min-h-0 overflow-y-auto">
-
-            {/* ══ MAIN COLUMN ══ */}
+          <div className="lg:grid lg:grid-cols-[1fr_300px]">
             <div className="lg:border-r lg:border-[#B8860B]/25">
 
-              {/* ── MARK ATTENDANCE ── */}
+              {/* ── MARK ATTENDANCE (actual check-in mechanism) ── */}
               <div className="bg-[#FAF7F2] px-6 py-4 lg:px-8 lg:py-4 border-t border-[#B8860B]/25">
-                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
+                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>
                   §1 — Mark Attendance
                 </p>
-
                 {(checkInAddress || checkOutAddress) && (
                   <div className="flex flex-wrap gap-x-6 gap-y-1 mb-3 lg:max-w-md">
                     {checkInAddress && (
@@ -194,7 +179,6 @@ export default async function EmployeePortalPage() {
                     )}
                   </div>
                 )}
-
                 <div className="lg:max-w-md">
                   <AttendanceMarkButton
                     employeeId={employee.id}
@@ -209,7 +193,7 @@ export default async function EmployeePortalPage() {
 
               {/* ── TODAY STATUS ── */}
               <div className="bg-white px-6 py-4 lg:px-8 lg:py-4 border-t border-[#B8860B]/25">
-                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
+                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>
                   §2 — {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
                 <div className="grid grid-cols-2 lg:max-w-md">
@@ -232,7 +216,7 @@ export default async function EmployeePortalPage() {
               {leaveBalance && (
                 <div className="bg-[#FAF7F2] px-6 py-4 lg:px-8 lg:py-4 border-t border-[#B8860B]/25">
                   <div className="flex items-baseline justify-between mb-3">
-                    <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
+                    <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase" style={mono}>
                       §3 — Leave Ledger — {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                     </p>
                     {((pendingLeaves?.length) ?? 0) > 0 && (
@@ -271,9 +255,8 @@ export default async function EmployeePortalPage() {
 
             {/* ══ SIDE COLUMN ══ */}
             <div className="flex flex-col">
-              {/* ── QUICK ACTIONS — EDITORIAL LIST ── */}
               <div className="bg-white border-t border-[#B8860B]/25 flex-1">
-                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase px-6 lg:px-5 pt-4 pb-1.5" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
+                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase px-6 lg:px-5 pt-4 pb-1.5" style={mono}>
                   §4 — Quick Actions
                 </p>
                 {quickActions.map((a, i) => {
@@ -294,7 +277,6 @@ export default async function EmployeePortalPage() {
                 })}
               </div>
 
-              {/* ── CRM PORTAL ── */}
               {hasCRMAccess && (
                 <Link href="/dashboard"
                   className="flex items-center gap-3 px-6 lg:px-5 py-3 bg-[#1C1712] border-t border-[#B8860B]/25 hover:bg-[#252019] transition-colors">
@@ -309,20 +291,18 @@ export default async function EmployeePortalPage() {
                 </Link>
               )}
 
-              {/* ── LOGOUT ── */}
               <form action="/api/auth/signout" method="POST" className="border-t border-[#B8860B]/25 flex-shrink-0">
                 <button type="submit"
                   className="w-full py-2.5 text-[10px] tracking-[2px] uppercase text-[#9A8F82] hover:text-[#1C1712] hover:bg-[#FAF7F2] transition-colors flex items-center justify-center gap-2"
-                  style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }}>
+                  style={mono}>
                   <LogOut className="w-3.5 h-3.5" /> Sign out
                 </button>
               </form>
             </div>
-
           </div>
-
         </div>
       </div>
+      <div className="h-20" />
     </div>
   )
 }

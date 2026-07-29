@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, User, Mail, Phone, Building, Briefcase, Calendar, Wallet } from 'lucide-react'
+import { ArrowLeft, User, Mail, Phone, Building, Briefcase, Calendar, Wallet, Landmark, CreditCard, ShieldCheck } from 'lucide-react'
 import ChangePasswordCard from '@/components/settings/ChangePasswordCard'
 
 export const dynamic = 'force-dynamic'
@@ -117,7 +117,27 @@ export default async function EmployeeProfilePage() {
             ))}
           </div>
 
-          {/* §4 — Salary */}
+          {/* §4 — Bank, PF & ESIC Details */}
+          <div className="bg-white border-t border-[#B8860B]/25">
+            <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase px-6 lg:px-8 pt-4 pb-1.5" style={mono}>§4 — Bank, PF & ESIC Details</p>
+            {[
+              { label: 'Bank name',      value: employee.bank_name      ?? '—', Icon: Landmark },
+              { label: 'Account number', value: employee.account_number ?? '—', Icon: CreditCard },
+              { label: 'IFSC code',      value: employee.ifsc_code      ?? '—', Icon: Landmark },
+              { label: 'PF number',      value: employee.pf_number      ?? '—', Icon: ShieldCheck },
+              { label: 'UAN number',     value: employee.uan_number     ?? '—', Icon: ShieldCheck },
+              { label: 'ESIC number',    value: employee.esic_number    ?? '—', Icon: ShieldCheck },
+            ].map((item, i) => (
+              <div key={item.label} className={`flex items-center justify-between px-6 lg:px-8 py-3 ${i > 0 ? 'border-t border-[#F0EAE0]' : ''}`}>
+                <span className="text-[11px] text-[#9A8F82] flex items-center gap-1.5">
+                  <item.Icon className="w-3.5 h-3.5" /> {item.label}
+                </span>
+                <span className="text-[13px] text-[#1C1712] max-w-[240px] text-right truncate" style={serif}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* §5 — Salary */}
           {employee.salary && (
             <div className="bg-[#1C1712] border-t border-[#B8860B]/25 px-6 lg:px-8 py-4 flex items-center justify-between">
               <div>
@@ -132,9 +152,9 @@ export default async function EmployeeProfilePage() {
             </div>
           )}
 
-          {/* §5 — Change Password */}
+          {/* §6 — Change Password */}
           <div className="bg-white border-t border-[#B8860B]/25 px-6 py-5 lg:px-8">
-            <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>§5 — Security</p>
+            <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>§6 — Security</p>
             <ChangePasswordCard />
           </div>
 
