@@ -478,49 +478,48 @@ function HowItWorksSection() {
   )
 }
 
-function TestimonialsCarousel() {
-  const [current, setCurrent] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const progRef  = useRef<ReturnType<typeof setInterval> | null>(null)
-  const DURATION = 4500
+// Replace the `function TestimonialsGrid() { ... }` block in LandingPage.tsx with this.
+// Also rename the render call: <TestimonialsGrid /> → <TestimonialsOwlCarousel />
 
-  const startProgress = () => {
-    setProgress(0)
-    if (progRef.current) clearInterval(progRef.current)
-    progRef.current = setInterval(() => {
-      setProgress(p => {
-        const next = p + 100 / (DURATION / 50)
-        return next >= 100 ? 100 : next
-      })
-    }, 50)
-  }
+function TestimonialsOwlCarousel() {
+  const [startIdx, setStartIdx] = useState(0)
+  const [cardsPerView, setCardsPerView] = useState(3)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Responsive cards-per-view — className-based, matches Tailwind breakpoints
+  useEffect(() => {
+    const updateCards = () => {
+      if (window.innerWidth < 768) setCardsPerView(1)
+      else if (window.innerWidth < 1024) setCardsPerView(2)
+      else setCardsPerView(3)
+    }
+    updateCards()
+    window.addEventListener('resize', updateCards)
+    return () => window.removeEventListener('resize', updateCards)
+  }, [])
+
+  const maxIdx = Math.max(0, testimonials.length - cardsPerView)
 
   const goTo = (idx: number) => {
-    const next = (idx + testimonials.length) % testimonials.length
-    setCurrent(next)
+    const clamped = Math.max(0, Math.min(idx, maxIdx))
+    setStartIdx(clamped)
     if (timerRef.current) clearInterval(timerRef.current)
-    startProgress()
     timerRef.current = setInterval(() => {
-      setCurrent(c => (c + 1) % testimonials.length)
-      startProgress()
-    }, DURATION)
+      setStartIdx(i => (i >= maxIdx ? 0 : i + 1))
+    }, 3800)
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     goTo(0)
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-      if (progRef.current)  clearInterval(progRef.current)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardsPerView])
 
-  const t = testimonials[current]
+  const cardWidthPct = 100 / cardsPerView
 
   return (
-    <section className="bg-[#F5F0E8] py-16 md:py-24">
-      <div className="max-w-4xl mx-auto px-4 md:px-6">
+    <section className="bg-[#F5F0E8] py-16 md:py-24 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
         <div className="text-center mb-10 md:mb-14">
           <p className="text-xs font-bold text-[#B8860B] uppercase tracking-[4px] mb-4">Testimonials</p>
           <h2 className="font-serif text-3xl md:text-5xl text-[#1C1712]">
@@ -528,56 +527,63 @@ function TestimonialsCarousel() {
           </h2>
         </div>
 
-        <div className="bg-white border border-[#E2D9C8] rounded-2xl p-6 md:p-10 relative overflow-hidden shadow-lg">
-          <span className="absolute top-4 left-8 font-serif text-8xl text-[#B8860B] opacity-10 leading-none select-none italic">&ldquo;</span>
-          <div className="flex gap-1 mb-5">
-            {[...Array(5)].map((_, i) => <span key={i} className="text-[#B8860B] text-sm">★</span>)}
-          </div>
-          <p className="text-[#4A4035] text-sm md:text-base font-light leading-relaxed mb-8 min-h-[70px] md:min-h-[80px]">
-            &ldquo;{t.text}&rdquo;
-          </p>
-          <div className="flex items-center gap-4 border-t border-[#E2D9C8] pt-6">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xs font-semibold flex-shrink-0"
-              style={{ background: t.bg, color: t.fg }}>{t.init}</div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-[#1C1712]">{t.name}</p>
-              <p className="text-xs text-[#9A8F82]">{t.role}</p>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
-              <span className="w-3 h-3 rounded-full bg-emerald-100 flex items-center justify-center text-[8px] text-emerald-600">✓</span>
-              Verified
-            </div>
+        {/* Track viewport */}
+        <div className="relative overflow-hidden">
+          <div
+            className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ transform: `translateX(-${startIdx * cardWidthPct}%)` }}
+          >
+            {testimonials.map((t, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 px-2.5"
+                style={{ width: `${cardWidthPct}%` }}
+              >
+                <div className="bg-white border border-[#E2D9C8] rounded-2xl p-6 h-full relative overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-[#B8860B]/30 transition-all duration-300 flex flex-col">
+                  <span className="absolute top-3 left-5 font-serif text-6xl text-[#B8860B] opacity-10 leading-none select-none italic">&ldquo;</span>
+
+                  <div className="flex gap-1 mb-4 relative">
+                    {[...Array(5)].map((_, j) => <span key={j} className="text-[#B8860B] text-xs">★</span>)}
+                  </div>
+
+                  <p className="text-[#4A4035] text-sm font-light leading-relaxed mb-6 flex-1 relative min-h-[100px]">
+                    &ldquo;{t.text}&rdquo;
+                  </p>
+
+                  <div className="flex items-center gap-3 border-t border-[#E2D9C8] pt-4">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                      style={{ background: t.bg, color: t.fg }}
+                    >
+                      {t.init}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#1C1712] truncate">{t.name}</p>
+                      <p className="text-xs text-[#9A8F82] truncate">{t.role}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[9px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full flex-shrink-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-100 flex items-center justify-center text-[7px] text-emerald-600">✓</span>
+                      Verified
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-5 mt-8">
-          <button onClick={() => goTo(current - 1)}
+          <button onClick={() => goTo(startIdx - 1)}
             className="w-10 h-10 rounded-full bg-white border border-[#E2D9C8] text-[#7A6E60] flex items-center justify-center hover:bg-[#1C1712] hover:text-white hover:border-[#1C1712] transition-all">←</button>
           <div className="flex items-center gap-1.5">
-            {testimonials.map((_, i) => (
+            {Array.from({ length: maxIdx + 1 }).map((_, i) => (
               <button key={i} onClick={() => goTo(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-6 bg-[#B8860B]' : 'w-1.5 bg-[#D3CBBB] hover:bg-[#B8860B]/40'}`} />
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === startIdx ? 'w-6 bg-[#B8860B]' : 'w-1.5 bg-[#D3CBBB] hover:bg-[#B8860B]/40'}`} />
             ))}
           </div>
-          <button onClick={() => goTo(current + 1)}
+          <button onClick={() => goTo(startIdx + 1)}
             className="w-10 h-10 rounded-full bg-white border border-[#E2D9C8] text-[#7A6E60] flex items-center justify-center hover:bg-[#1C1712] hover:text-white hover:border-[#1C1712] transition-all">→</button>
-        </div>
-
-        {/* Avatar row */}
-        <div className="flex justify-center gap-2 mt-5">
-          {testimonials.map((tt, i) => (
-            <button key={i} onClick={() => goTo(i)}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-semibold transition-all duration-300 border-2 ${
-                i === current ? 'scale-110 border-[#B8860B] opacity-100' : 'border-transparent opacity-30 hover:opacity-60'
-              }`}
-              style={{ background: tt.bg, color: tt.fg }}>{tt.init}</button>
-          ))}
-        </div>
-
-        {/* Progress bar */}
-        <div className="mt-6 h-0.5 bg-[#E2D9C8] rounded-full overflow-hidden">
-          <div className="h-full bg-[#B8860B] rounded-full" style={{ width: `${Math.round(progress)}%`, transition: 'none' }} />
         </div>
       </div>
     </section>
@@ -740,7 +746,7 @@ export default function LandingPage() {
                 className="hidden md:block text-sm font-medium text-[#7A6E60] hover:text-[#1C1712] transition-colors">
                 Sign In
               </button>
-              <button onClick={() => router.push('/signup')}
+              <button onClick={() => scrollTo('pricing')}
                 className="bg-[#1C1712] text-white text-xs md:text-sm font-semibold px-3 md:px-5 py-2 md:py-2.5 rounded-xl hover:bg-[#B8860B] transition-all duration-300 shadow-md">
                 Start Free →
               </button>
@@ -805,7 +811,7 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
-              <button onClick={() => router.push('/signup')}
+              <button onClick={() => scrollTo('pricing')}
                 className="w-full sm:w-auto bg-[#1C1712] text-white px-8 py-4 rounded-xl text-sm font-bold hover:bg-[#B8860B] transition-all duration-300 shadow-xl shadow-black/15 text-center">
                 Start Free Trial — 14 Days →
               </button>
@@ -1065,7 +1071,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── TESTIMONIALS ── */}
-        <TestimonialsCarousel />
+        <TestimonialsOwlCarousel  />
 
         {/* ── FAQ ── */}
         <section className="max-w-3xl mx-auto px-4 md:px-6 py-16 md:py-24">
@@ -1184,7 +1190,7 @@ export default function LandingPage() {
                 Join 3,800+ businesses using GK CRM to manage leads, projects, staff and billing — all in one place.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button onClick={() => router.push('/signup')}
+                <button onClick={() => scrollTo('pricing')}
                   className="bg-[#B8860B] text-white px-8 md:px-10 py-4 rounded-xl text-sm font-bold hover:bg-[#9A7009] transition-all shadow-xl shadow-amber-900/30">
                   Start Free Trial — 14 Days →
                 </button>

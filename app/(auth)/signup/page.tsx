@@ -1,10 +1,14 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // pricing page నుండి వచ్చిన plan — /onboarding కి కూడా ఇదే carry అవ్వాలి
+  const planId = searchParams.get('plan') || 'starter'
 
   // Always step 2 (details) → step 3 (confirm) — industry fixed as Interior Design
   const [step, setStep] = useState<2 | 3>(2)
@@ -70,7 +74,7 @@ function SignupForm() {
       industries: ['interior-design'],
     }))
     localStorage.setItem('gk_signup_industries', JSON.stringify(['interior-design']))
-    router.push('/onboarding')
+    router.push(`/onboarding?plan=${planId}`)
     setLoading(false)
   }
 

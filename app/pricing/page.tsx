@@ -66,25 +66,6 @@ const PLANS = [
 
 const BUNDLE_DISCOUNT = 0.1;
 
-const INCLUDED_FEATURES = [
-  { icon: "🎯", title: "7-Stage Lead Pipeline", desc: "New → RNR → Follow-up → Site Visit → Quotation → Won → Lost", tier: null },
-  { icon: "⚡", title: "Real-time Dashboard",   desc: "Live lead activity, pipeline stats and team performance", tier: null },
-  { icon: "👥", title: "Team Member Access",    desc: "Add employees for login — up to plan's user limit", tier: null },
-  { icon: "🔐", title: "Role-Based Access",     desc: "Admin sees all. CRE sees only their assigned leads", tier: null },
-  { icon: "📅", title: "HRMS & Attendance",     desc: "Clock-in/out, leave requests, salary slips built-in", tier: "Professional" },
-  { icon: "💳", title: "GST Billing & Invoices", desc: "Razorpay-powered payments, partial payments, overdue tracking", tier: "Professional" },
-  { icon: "🏗️", title: "Project Management",   desc: "Budgets, timelines, site photos, material tracking", tier: "Professional" },
-  { icon: "📊", title: "Analytics & Reports",   desc: "Win rates, revenue charts, team leaderboard", tier: "Professional" },
-];
-
-const AI_INTEGRATIONS = [
-  { icon: "🎙️", name: "Vapi.ai Voice",  desc: "AI calls new leads in 60 seconds", badge: "Coming Soon" },
-  { icon: "💬", name: "WATI WhatsApp",  desc: "Auto follow-up via WhatsApp bot",   badge: "Coming Soon" },
-  { icon: "⚙️", name: "N8N Automation", desc: "Meta Ads → CRM auto-capture",       badge: "Coming Soon" },
-  { icon: "📘", name: "Meta Ads",        desc: "Facebook lead forms auto-sync",     badge: "Coming Soon" },
-  { icon: "🔍", name: "Google Ads",      desc: "Google lead gen → instant entry",   badge: "Coming Soon" },
-];
-
 const PRICING_FAQS = [
   { q: "What happens after the 14-day trial?",     a: "Your account stays active but locked. You can subscribe to any plan without losing your data. No auto-charges — you choose when to upgrade." },
   { q: "Is there a setup fee or hidden charges?",  a: "Zero setup fee. Price shown is all-inclusive. No per-seat fees beyond the plan limit." },
@@ -112,103 +93,6 @@ function useInView(threshold = 0.15) {
 }
 
 // ── SUBCOMPONENTS ─────────────────────────────────────────────────────────
-
-function WhatIncludedSection() {
-  const { ref, visible } = useInView();
-  return (
-    <div ref={ref} className="py-16 md:py-20 bg-[#F5F0E8]">
-      <div className="max-w-5xl mx-auto px-4 md:px-6">
-        <div className="text-center mb-10 md:mb-14">
-          <p className="text-xs font-bold text-[#B8860B] uppercase tracking-[4px] mb-3">What's Inside</p>
-          <h2 className="font-serif text-3xl md:text-4xl text-[#1C1712] mb-3">
-            Everything you need. <em className="italic font-normal text-[#B8860B]">Growing with you.</em>
-          </h2>
-          <p className="text-[#7A6E60] text-sm md:text-base max-w-md mx-auto">
-            Starter covers the essentials — including team access. Professional unlocks HRMS, billing and advanced reports — tagged below.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {INCLUDED_FEATURES.map((f, i) => (
-            <div key={i}
-              className="relative bg-white border border-[#E2D9C8] rounded-2xl p-4 md:p-5 hover:-translate-y-1 hover:shadow-lg hover:border-[#B8860B]/30 transition-all duration-300 group"
-              style={{
-                opacity: visible ? 1 : 0,
-                transform: visible ? 'translateY(0)' : 'translateY(16px)',
-                transition: `opacity 0.5s ease ${i * 60}ms, transform 0.5s ease ${i * 60}ms, box-shadow 0.3s, border-color 0.3s`,
-              }}
-            >
-              {f.tier && (
-                <span className="absolute top-3 right-3 text-[8px] font-bold text-[#B8860B] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                  {f.tier}
-                </span>
-              )}
-              <div className="w-10 h-10 bg-[#F5F0E8] group-hover:bg-amber-50 rounded-xl flex items-center justify-center text-xl mb-3 transition-colors">{f.icon}</div>
-              <p className="text-xs font-bold text-[#1C1712] mb-1.5">{f.title}</p>
-              <p className="text-[11px] text-[#9A8F82] leading-relaxed">{f.desc}</p>
-              <div className="mt-3 h-0.5 w-0 bg-[#B8860B] group-hover:w-full transition-all duration-500 rounded-full" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AITeaserSection() {
-  const { ref, visible } = useInView();
-  return (
-    <div ref={ref} className="py-14 md:py-20 bg-white border-y border-[#E2D9C8]">
-      <div className="max-w-5xl mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          <div className="flex-1">
-            <span className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-[#B8860B] text-xs font-bold px-4 py-2 rounded-full mb-5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#B8860B] animate-pulse" />
-              Professional plan · Coming Soon
-            </span>
-            <h2 className="font-serif text-2xl md:text-3xl text-[#1C1712] mb-3">
-              AI automation tools,<br />
-              <em className="italic font-normal text-[#B8860B]">built into Professional</em>
-            </h2>
-            <p className="text-sm text-[#7A6E60] leading-relaxed mb-6 max-w-md">
-              When these AI integrations launch, they will be available to Professional plan subscribers at no extra charge. Upgrade anytime to unlock them.
-            </p>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
-                ✓ No price increase
-              </span>
-              <span className="flex items-center gap-1.5 text-[#B8860B] font-semibold bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full">
-                ⚡ Auto-enabled
-              </span>
-            </div>
-          </div>
-          <div className="flex-1 w-full">
-            <div className="space-y-2.5">
-              {AI_INTEGRATIONS.map((item, i) => (
-                <div key={i}
-                  className="flex items-center gap-3 bg-[#F5F0E8] border border-[#E2D9C8] rounded-xl p-3 hover:border-[#B8860B]/30 hover:bg-white transition-all"
-                  style={{
-                    opacity: visible ? 1 : 0,
-                    transform: visible ? 'translateX(0)' : 'translateX(20px)',
-                    transition: `opacity 0.5s ease ${i * 80 + 200}ms, transform 0.5s ease ${i * 80 + 200}ms`,
-                  }}
-                >
-                  <span className="text-xl flex-shrink-0">{item.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-[#1C1712]">{item.name}</p>
-                    <p className="text-[10px] text-[#9A8F82]">{item.desc}</p>
-                  </div>
-                  <span className="text-[9px] font-bold text-[#B8860B] bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full uppercase tracking-wide flex-shrink-0">
-                    {item.badge}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function PricingFAQ() {
   const [active, setActive] = useState<number | null>(null);
@@ -570,12 +454,6 @@ export default function GKCRMPricing() {
           </div>
         </div>
       </section>
-
-      {/* ── WHAT'S INCLUDED ───────────────────────────────────────────── */}
-      <WhatIncludedSection />
-
-      {/* ── AI TOOLS TEASER ───────────────────────────────────────────── */}
-      <AITeaserSection />
 
       {/* ── PRICING FAQ ───────────────────────────────────────────────── */}
       <PricingFAQ />
