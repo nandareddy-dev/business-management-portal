@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import GKFooter from "@/components/GKFooter"
 
 export default function PrivacyPolicyPage() {
   const router = useRouter()
@@ -9,28 +8,8 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-[#F5F0E8] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── NAVBAR ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E2D9C8] shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <button onClick={() => router.push('/')} className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-sm font-bold text-white shadow-md">G</div>
-            <span className="font-serif text-xl text-[#1C1712]">GK · CRM</span>
-          </button>
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/terms')}
-              className="hidden md:block text-sm font-medium text-[#7A6E60] hover:text-[#1C1712] transition-colors">
-              Terms of Service
-            </button>
-            <button onClick={() => router.push('/')}
-              className="text-sm font-semibold bg-[#1C1712] text-white px-4 py-2 rounded-xl hover:bg-[#B8860B] transition-all duration-300">
-              ← Back to Home
-            </button>
-          </div>
-        </div>
-      </nav>
-
       {/* ── CONTENT ── */}
-      <div className="flex-1 max-w-3xl mx-auto px-4 md:px-6 pt-28 pb-20 w-full">
+      <div className="flex-1 max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-20 w-full">
         <div className="mb-10">
           <p className="text-xs font-bold text-[#B8860B] uppercase tracking-[4px] mb-3">Legal</p>
           <h1 className="font-serif text-4xl md:text-5xl text-[#1C1712] mb-4">Privacy Policy</h1>
@@ -88,7 +67,7 @@ export default function PrivacyPolicyPage() {
               { sub: 'Updates', text: 'We may update this Privacy Policy from time to time. We will notify you of significant changes via email or in-app notification. Continued use of GK CRM after changes constitutes acceptance.' },
             ]},
             { title: '10. Contact Us', content: [
-              { sub: 'Privacy Questions', text: 'For any privacy-related questions, contact us at: privacy@gkcrm.in or +91 98765 43210. We are based in Hyderabad, Telangana, India.' },
+              { sub: 'Privacy Questions', text: 'For any privacy-related questions, contact us at: supportcrm@gkdigitalsolutions.in or +91 7095815427. We are based in Hyderabad, Telangana, India.' },
             ]},
           ].map((section) => (
             <div key={section.title}>
@@ -110,15 +89,12 @@ export default function PrivacyPolicyPage() {
             className="px-6 py-3 bg-[#1C1712] text-white rounded-xl text-sm font-semibold hover:bg-[#B8860B] transition-all duration-300 shadow-md">
             ← Back to Home
           </button>
-          <button onClick={() => router.push('/terms')}
+          <button onClick={() => router.push('/terms-of-service')}
             className="px-6 py-3 border border-[#E2D9C8] text-[#7A6E60] rounded-xl text-sm font-medium hover:bg-white hover:border-[#B8860B]/40 transition-all">
             Terms of Service →
           </button>
         </div>
       </div>
-
-      {/* ── FOOTER ── */}
-      <GKFooter activePage="privacy" />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { User, TrendingUp, CheckCircle2, Clock3 } from 'lucide-react'
 import GKCRMPricing from "@/app/pricing/page"
 import GKFooter from "@/components/GKFooter"
 import GKHeader from "@/components/GKHeader"
@@ -85,10 +86,10 @@ const testimonials = [
 ]
 
 const stats = [
-  { value: 3800, suffix: '+',    label: 'Active Users' },
-  { value: 120,  prefix: '₹', suffix: 'Cr+', label: 'Revenue Tracked' },
-  { value: 99.9, suffix: '%',   label: 'Uptime' },
-  { value: 48,   suffix: 'hrs', label: 'Avg Onboarding' },
+  { icon: User,         value: 3800, suffix: '+',    label: 'Active Users',     tint: '#EEEDFE', fg: '#7F77DD' },
+  { icon: TrendingUp,   value: 120,  prefix: '₹', suffix: 'Cr+', label: 'Revenue Tracked', tint: '#E1F5EE', fg: '#1D9E75' },
+  { icon: CheckCircle2, value: 99.9, suffix: '%',   label: 'Uptime',           tint: '#FAEEDA', fg: '#BA7517' },
+  { icon: Clock3,       value: 48,   suffix: 'hrs', label: 'Avg Onboarding',   tint: '#E6F1FB', fg: '#378ADD' },
 ]
 
 const faqs = [
@@ -184,17 +185,31 @@ function LiveTicker() {
   )
 }
 
-function StatCounter({ value, prefix = '', suffix = '', label, start }: {
-  value: number; prefix?: string; suffix?: string; label: string; start: boolean
+function StatCard({ icon: Icon, value, prefix = '', suffix = '', label, tint, fg, start, delay = 0 }: {
+  icon: React.ElementType; value: number; prefix?: string; suffix?: string; label: string;
+  tint: string; fg: string; start: boolean; delay?: number
 }) {
   const count = useCountUp(value, 2200, start)
   const display = value % 1 !== 0 ? (start ? value.toFixed(1) : '0.0') : count.toLocaleString()
   return (
-    <div className="text-center group cursor-default">
-      <p className="font-serif text-3xl md:text-5xl text-white mb-1 md:mb-2 tabular-nums group-hover:text-[#B8860B] transition-colors duration-500">
+    <div
+      className="bg-[#F7F5F1] rounded-2xl p-5 md:p-6 text-center hover:-translate-y-1 hover:shadow-md transition-all duration-300"
+      style={{
+        opacity: start ? 1 : 0,
+        transform: start ? 'translateY(0)' : 'translateY(14px)',
+        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
+      }}
+    >
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3"
+        style={{ background: tint, color: fg }}
+      >
+        <Icon className="w-5 h-5" strokeWidth={1.75} />
+      </div>
+      <p className="font-serif text-2xl md:text-3xl font-bold text-[#1C1712] tabular-nums mb-1">
         {prefix}{display}{suffix}
       </p>
-      <p className="text-xs md:text-sm text-white/40 font-medium">{label}</p>
+      <p className="text-xs md:text-sm text-[#9A8F82] font-medium">{label}</p>
     </div>
   )
 }
@@ -719,7 +734,7 @@ export default function LandingPage() {
         <GKHeader />
 
         {/* ── HERO ── */}
-        <section className="relative max-w-6xl mx-auto px-4 md:px-6 pt-12 md:pt-20 pb-12 md:pb-20 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-14 items-center overflow-hidden">
+        <section className="relative max-w-6xl mx-auto px-4 md:px-6 pt-6 md:pt-8 pb-12 md:pb-20 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-14 items-center overflow-hidden">
           {/* Ambient glow */}
           <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-amber-100/60 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-72 h-72 bg-purple-100/40 rounded-full blur-3xl pointer-events-none" />
@@ -918,13 +933,24 @@ export default function LandingPage() {
         </section>
 
         {/* ── STATS ── */}
-        <section ref={statsRef} className="bg-[#1C1712] mx-4 md:mx-8 lg:mx-16 rounded-2xl relative overflow-hidden py-8 md:py-12">
-          <div className="absolute inset-0 opacity-5" style={{
-            backgroundImage: 'radial-gradient(circle at 25% 50%, #B8860B 0%, transparent 50%), radial-gradient(circle at 75% 50%, #6B3FA0 0%, transparent 50%)',
-          }} />
-          <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-            {stats.map(s => (
-              <StatCounter key={s.label} value={s.value} prefix={s.prefix} suffix={s.suffix} label={s.label} start={statsVisible} />
+        <section ref={statsRef} className="bg-white mx-4 md:mx-8 lg:mx-16 rounded-2xl relative overflow-hidden py-10 md:py-14 border border-[#E2D9C8]">
+          <h2 className="text-center font-serif text-xl md:text-2xl font-bold text-[#1C1712] mb-8 md:mb-10">
+            Our growing stats
+          </h2>
+          <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {stats.map((s, i) => (
+              <StatCard
+                key={s.label}
+                icon={s.icon}
+                value={s.value}
+                prefix={s.prefix}
+                suffix={s.suffix}
+                label={s.label}
+                tint={s.tint}
+                fg={s.fg}
+                start={statsVisible}
+                delay={i * 90}
+              />
             ))}
           </div>
         </section>
@@ -1118,7 +1144,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── CTA BANNER ── */}
-        <section className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-16 md:pb-24">
+        <section className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-16 md:pb-15">
           <div className="relative bg-[#1C1712] rounded-3xl px-6 md:px-10 py-12 md:py-16 text-center overflow-hidden">
             <div className="absolute inset-0 opacity-10" style={{
               backgroundImage: 'radial-gradient(circle at 30% 50%, #B8860B, transparent 50%), radial-gradient(circle at 70% 50%, #6B3FA0, transparent 50%)',

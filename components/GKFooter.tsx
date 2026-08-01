@@ -50,24 +50,24 @@ const socialLinks = [
 // ── Types ─────────────────────────────────────────────────────────────────
 
 interface GKFooterProps {
-  activePage?: 'home' | 'privacy' | 'terms'
+  activePage?: 'home' | 'privacy-policy' | 'terms-of-service'
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
 
 export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
   // ── helpers ──
-  const privacyActive = activePage === 'privacy'
-  const termsActive   = activePage === 'terms'
+  const privacyActive = activePage === 'privacy-policy'
+  const termsActive   = activePage === 'terms-of-service'
 
   return (
     <footer style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
 
       {/* ── 3. MAIN FOOTER GRID ────────────────────────────────────── */}
-      <div className="bg-[#F5F0E8] border-t border-[#E2D9C8] pt-12 md:pt-16">
+      <div className="bg-[#F5F0E8] border-t border-[#E2D9C8] pt-6 md:pt-10">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-6 pb-10 md:pb-12">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-6 pb-10 md:pb-8">
 
             {/* Col 1–2: Brand + Contact + Social */}
             <div className="col-span-2">
@@ -141,11 +141,11 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
                 <Link href="/#support" className="block text-sm text-[#7A6E60] hover:text-[#1C1712] transition-colors">About Us</Link>
                 <Link href="/#support" className="block text-sm text-[#7A6E60] hover:text-[#1C1712] transition-colors">Support</Link>
                 <Link href="/#support" className="block text-sm text-[#7A6E60] hover:text-[#1C1712] transition-colors">Contact</Link>
-                <Link href="/privacy"
+                <Link href="/privacy-policy"
                   className={`block text-sm transition-colors ${privacyActive ? 'font-semibold text-[#B8860B]' : 'font-normal text-[#7A6E60] hover:text-[#1C1712]'}`}>
                   Privacy Policy
                 </Link>
-                <Link href="/terms"
+                <Link href="/terms-of-service"
                   className={`block text-sm transition-colors ${termsActive ? 'font-semibold text-[#B8860B]' : 'font-normal text-[#7A6E60] hover:text-[#1C1712]'}`}>
                   Terms of Service
                 </Link>
@@ -164,7 +164,7 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
                   className="block w-full border border-[#E2D9C8] text-[#1C1712] text-xs font-semibold text-center py-2.5 px-4 rounded-xl hover:border-[#B8860B] hover:bg-white transition-all">
                   Sign In
                 </Link>
-                <a href="https://wa.me/919876543210" target="_blank" rel="noreferrer"
+                <a href="https://wa.me/917095815427" target="_blank" rel="noreferrer"
                   className="flex items-center justify-center gap-1.5 w-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold py-2.5 px-4 rounded-xl hover:bg-[#25D366] hover:border-[#25D366] hover:text-white transition-all duration-300">
                   <WhatsAppIcon /> Chat on WhatsApp
                 </a>
@@ -174,22 +174,24 @@ export default function GKFooter({ activePage = 'home' }: GKFooterProps) {
           </div>
 
           {/* ── 5. BOTTOM BAR ──────────────────────────────────────── */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 border-t border-[#E2D9C8] pt-6 pb-8">
-            <p className="text-xs text-[#B8B0A0]">
-              © 2026 GK CRM by <span className="text-[#7A6E60] font-medium">GK Digital Solutions</span>. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              <Link href="/privacy"
-                className={`text-xs transition-colors ${privacyActive ? 'text-[#B8860B] font-medium' : 'text-[#B8B0A0] hover:text-[#1C1712]'}`}>
-                Privacy
-              </Link>
-              <span className="text-[#D3CBBB]">·</span>
-              <Link href="/terms"
-                className={`text-xs transition-colors ${termsActive ? 'text-[#B8860B] font-medium' : 'text-[#B8B0A0] hover:text-[#1C1712]'}`}>
-                Terms
-              </Link>
-              <span className="text-[#D3CBBB]">·</span>
-              <p className="text-xs text-[#B8B0A0]">Built with ❤️ in Hyderabad, India</p>
+          <div className="border-t border-[#E2D9C8] pt-3 pb-5">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+              <p className="text-xs text-[#B8B0A0]">
+                © 2026 GK CRM by <span className="text-[#7A6E60] font-medium">GK Digital Solutions</span>. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4">
+                <Link href="/privacy-policy"
+                  className={`text-xs transition-colors ${privacyActive ? 'text-[#B8860B] font-medium' : 'text-[#B8B0A0] hover:text-[#1C1712]'}`}>
+                  Privacy Policy
+                </Link>
+                <span className="text-[#D3CBBB]">·</span>
+                <Link href="/terms-of-service"
+                  className={`text-xs transition-colors ${termsActive ? 'text-[#B8860B] font-medium' : 'text-[#B8B0A0] hover:text-[#1C1712]'}`}>
+                  Terms of Service
+                </Link>
+                <span className="text-[#D3CBBB] hidden md:inline">·</span>
+                <p className="text-xs text-[#B8B0A0] hidden md:block">Built with ❤️ in Hyderabad, India</p>
+              </div>
             </div>
           </div>
 
