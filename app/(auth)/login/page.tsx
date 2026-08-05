@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -124,17 +126,27 @@ export default function LoginPage() {
                 <label className="text-xs font-bold uppercase tracking-widest" style={{ color: '#7A6E60' }}>Password</label>
                 <a href="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: '#B8860B' }}>Forgot password?</a>
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3.5 rounded-xl text-sm outline-none transition-all"
-                style={{ background: 'white', border: '1.5px solid #E8E2D8', color: '#1C1712' }}
-                onFocus={e => e.target.style.borderColor = '#B8860B'}
-                onBlur={e => e.target.style.borderColor = '#E8E2D8'}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-3.5 pr-12 rounded-xl text-sm outline-none transition-all"
+                  style={{ background: 'white', border: '1.5px solid #E8E2D8', color: '#1C1712' }}
+                  onFocus={e => e.target.style.borderColor = '#B8860B'}
+                  onBlur={e => e.target.style.borderColor = '#E8E2D8'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  tabIndex={-1}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9A8F82] hover:text-[#1C1712] transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {error && (
