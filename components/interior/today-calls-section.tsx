@@ -353,15 +353,8 @@ export function TodayCallsSection({
     : (cres.find(c => c.id === currentUserId)?.name || 'Me')
   const totalCount = todayCalls.length
 
-  // Non-admins have no dropdown to click (they only ever see themselves) — load their own
-  // performance automatically on mount instead of requiring an interaction.
-  useEffect(() => {
-    if (!isAdminOrOwner) {
-      loadPerf(currentUserId, selectedName)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminOrOwner, currentUserId])
-
+  // Declared before the mount-effect below that calls it, so there's no
+  // temporal-dead-zone / declared-before-use concern for the linter.
   const loadPerf = async (creId: string, creName: string) => {
     setPerfLoading(true)
     try {
@@ -372,6 +365,15 @@ export function TodayCallsSection({
     } catch (e) { console.error('[Perf]', e) }
     finally { setPerfLoading(false) }
   }
+
+  // Non-admins have no dropdown to click (they only ever see themselves) — load their own
+  // performance automatically on mount instead of requiring an interaction.
+  useEffect(() => {
+    if (!isAdminOrOwner) {
+      loadPerf(currentUserId, selectedName)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminOrOwner, currentUserId])
 
   const handleStageClick = async (stageKey: string, accentColor: string) => {
     if (!expandedCRE) return

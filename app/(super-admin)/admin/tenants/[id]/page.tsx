@@ -57,6 +57,9 @@ export default async function TenantDetailPage({
   if (subscription?.activated_at) {
     renewalDate = new Date(subscription.activated_at)
     renewalDate.setMonth(renewalDate.getMonth() + 1)
+    // eslint-disable-next-line react-hooks/purity -- this is a server component; runs once
+    // per request on the server, not during a re-render, so "impure during render" doesn't
+    // apply the way it does for client components — suppressed rather than restructured.
     const diffMs = renewalDate.getTime() - Date.now()
     daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
   }

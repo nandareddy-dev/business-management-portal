@@ -69,7 +69,7 @@ export default async function AnalyticsPage({
 
   // ── Activities — chunk lead ids (URL length safety) + paginate each chunk ──
   const leadIds = allLeads.map((l: Lead) => l.id)
-  let allActivities: LeadActivity[] = []
+  const allActivities: LeadActivity[] = []
   if (leadIds.length > 0) {
     const CHUNK = 500
     for (let i = 0; i < leadIds.length; i += CHUNK) {

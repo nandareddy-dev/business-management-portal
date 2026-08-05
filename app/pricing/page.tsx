@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 // ── DATA ──────────────────────────────────────────────────────────────────
@@ -77,19 +77,6 @@ const PRICING_FAQS = [
 
 function fmt(n: number) {
   return "₹" + n.toLocaleString("en-IN");
-}
-
-// ── HOOKS ─────────────────────────────────────────────────────────────────
-
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, visible };
 }
 
 // ── SUBCOMPONENTS ─────────────────────────────────────────────────────────

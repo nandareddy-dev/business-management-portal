@@ -116,6 +116,12 @@ export function NotificationCenter() {
     }
   }
 
+  // Relative-time label (e.g. "5m ago"). Reads the current instant via
+  // Date.now() purely for display formatting — no state mutation, no side
+  // effects — so the lint rule's "impure during render" concern doesn't
+  // apply here in practice; suppressed rather than restructured into a
+  // ref/effect pair that would add complexity for no real benefit.
+  // eslint-disable-next-line react-hooks/purity -- read-only relative-time formatting, not a stateful side effect
   function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)

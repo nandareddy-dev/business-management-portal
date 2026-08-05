@@ -15,6 +15,18 @@ interface Notification {
   type: string
 }
 
+// Shape of the raw row coming back from the `notifications` table via the
+// Supabase realtime payload — used to replace an `any` cast.
+interface NotificationRow {
+  id: string
+  title: string
+  message: string
+  link: string | null
+  is_read: boolean
+  type: string
+  created_at: string
+}
+
 interface HeaderProps {
   onMenuClick: () => void
   title?: string
@@ -111,7 +123,7 @@ export function Header({
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
           (payload) => {
-            const n = payload.new as Record<string, any>
+            const n = payload.new as NotificationRow
             setNotifications(prev => [{
               id: n.id,
               title: n.title,

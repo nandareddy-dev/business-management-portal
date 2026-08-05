@@ -18,6 +18,9 @@ export default function DashboardShell({ children, userName, userEmail, userRole
   // until the menu button is tapped). Checking window.innerWidth in a client
   // effect avoids SSR/hydration mismatches from reading window during render.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync
+    // with window size on mount; there is no external-system subscription here,
+    // just reading a value that only exists client-side.
     if (window.innerWidth >= 1024) setSidebarOpen(true)
   }, [])
 

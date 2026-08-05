@@ -6,6 +6,25 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { Clock, Calendar, MapPin, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
 import { RegularizationActions } from '@/components/super-admin/attendance/regularization-actions'
 
+// Row shapes returned by the joined Supabase queries below — replaces `any` casts.
+interface AttendanceRow {
+  employee_id: string
+  attendance_date: string
+  status: string | null
+  within_geofence: boolean | null
+  is_regularized: boolean | null
+  employees: { full_name: string } | null
+}
+
+interface RegularizationRow {
+  id: string
+  attendance_date: string
+  reason: string
+  requested_check_in?: string | null
+  requested_check_out?: string | null
+  employees: { full_name: string } | null
+}
+
 export default async function AttendancePage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -46,7 +65,7 @@ export default async function AttendancePage() {
     summaryMap[e.id] = { name: e.full_name, present: 0, absent: 0, outsideGeofence: 0, regularized: 0 }
   })
 
-  attendance?.forEach((row: any) => {
+  ;(attendance as unknown as AttendanceRow[] | null)?.forEach((row) => {
     const key = row.employee_id
     if (!summaryMap[key]) {
       summaryMap[key] = { name: row.employees?.full_name ?? 'Unknown', present: 0, absent: 0, outsideGeofence: 0, regularized: 0 }
@@ -110,7 +129,7 @@ export default async function AttendancePage() {
               <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-full">{pendingCount} pending</span>
             </div>
             <div>
-              {(regularizations as any[]).map((r, idx) => (
+              {(regularizations as unknown as RegularizationRow[]).map((r, idx) => (
                 <div key={r.id} className={`px-5 py-4 flex items-start justify-between gap-4 ${idx > 0 ? 'border-t border-black/5' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

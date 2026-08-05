@@ -8,7 +8,6 @@ import { createBrowserClient } from '@supabase/ssr'
 
 export const dynamic = 'force-dynamic'
 
-interface Employee { id: string; full_name: string }
 interface AttendanceRecord {
   id: string
   employee_id: string
@@ -41,7 +40,6 @@ export default function EmployeeAttendancePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const [employee, setEmployee] = useState<Employee | null>(null)
   const [records, setRecords]   = useState<AttendanceRecord[]>([])
   const [leaveApps, setLeaveApps] = useState<LeaveApp[]>([])
   const [loading, setLoading]   = useState(true)
@@ -65,7 +63,6 @@ export default function EmployeeAttendancePage() {
       const { data: emp } = await supabase
         .from('employees').select('id, full_name').eq('email', user.email!).single()
       if (!emp) { router.push('/login'); return }
-      setEmployee(emp)
 
       const [{ data: recs }, { data: leaves }] = await Promise.all([
         supabase.from('attendance').select('*')
@@ -85,7 +82,13 @@ export default function EmployeeAttendancePage() {
     finally { setLoading(false) }
   }, [supabase, router, monthStart, monthEnd])
 
-  useEffect(() => { setLoading(true); loadData() }, [loadData])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
+    // refetch on month navigation; loadData itself sets loading=false when done,
+    // this just flips the spinner on immediately for a responsive month switch.
+    setLoading(true)
+    loadData()
+  }, [loadData])
 
   const goPrevMonth = () => {
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) } else setViewMonth(m => m - 1)

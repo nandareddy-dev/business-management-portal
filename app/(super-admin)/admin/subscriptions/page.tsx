@@ -78,6 +78,7 @@ export default function AdminSubscriptionsPage() {
     if (sub.status === 'trial') {
       if (!sub.trial_ends_at) return { label: 'Trial Ends', text: '—', color: 'text-gray-500' }
       const endDate = new Date(sub.trial_ends_at)
+      // eslint-disable-next-line react-hooks/purity -- read-only "days remaining" display calc, not a stateful side effect
       const daysLeft = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       if (daysLeft < 0) return { label: 'Trial Ends', text: 'Expired', color: 'text-red-600' }
       if (daysLeft <= 7) return { label: 'Trial Ends', text: `${daysLeft} days`, color: 'text-amber-600' }
@@ -89,6 +90,7 @@ export default function AdminSubscriptionsPage() {
     }
 
     if (sub.next_renewal) {
+      // eslint-disable-next-line react-hooks/purity -- read-only "days remaining" display calc, not a stateful side effect
       const daysLeft = Math.ceil((new Date(sub.next_renewal).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       if (daysLeft < 0) return { label: 'Renews', text: 'Overdue', color: 'text-red-600' }
       if (daysLeft <= 5) return { label: 'Renews', text: `${daysLeft} days`, color: 'text-amber-600' }

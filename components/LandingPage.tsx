@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, TrendingUp, CheckCircle2, Clock3 } from 'lucide-react'
 import GKCRMPricing from "@/app/pricing/page"
@@ -522,6 +522,9 @@ function TestimonialsOwlCarousel() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional carousel
+    // (re)initialization whenever the responsive card count changes; this both resets
+    // position and (re)starts the autoplay timer, which belongs together as one unit.
     goTo(0)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -124,7 +125,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-bold uppercase tracking-widest" style={{ color: '#7A6E60' }}>Password</label>
-                <a href="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: '#B8860B' }}>Forgot password?</a>
+                <Link href="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: '#B8860B' }}>Forgot password?</Link>
               </div>
               <div className="relative">
                 <input
@@ -168,7 +169,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm mt-6" style={{ color: '#9A8F82' }}>
             Don&apos;t have an account?{' '}
-            <a href="/#pricing" className="font-bold hover:underline" style={{ color: '#1C1712' }}>Sign Up Free</a>
+            <Link href="/#pricing" className="font-bold hover:underline" style={{ color: '#1C1712' }}>Sign Up Free</Link>
           </p>
         </div>
       </div>

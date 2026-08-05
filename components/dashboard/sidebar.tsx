@@ -181,15 +181,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   useEffect(() => {
     if (industryFromUrl) {
       localStorage.setItem('gk-active-industry', industryFromUrl)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional sync
+      // with the URL's industry segment when navigating between industries.
       setCurrentIndustrySlug(industryFromUrl)
     } else {
       const saved = localStorage.getItem('gk-active-industry')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
+      // restore of last-selected industry from localStorage on mount.
       if (saved && INDUSTRIES[saved]) setCurrentIndustrySlug(saved)
     }
   }, [pathname, industryFromUrl])
 
   const currentIndustry = INDUSTRIES[currentIndustrySlug]
-  const { adminNavGroups, employeeNavGroups, IND } = useMemo(() => buildNavGroups(currentIndustrySlug), [currentIndustrySlug])
+  // NOTE: buildNavGroups also returns `IND` (the industry-prefixed base path) but this
+  // component doesn't need it directly — hrefs are already built into adminNavGroups /
+  // employeeNavGroups — so it's intentionally left out of the destructure.
+  const { adminNavGroups, employeeNavGroups } = useMemo(() => buildNavGroups(currentIndustrySlug), [currentIndustrySlug])
 
   const [role, setRole] = useState<'admin' | 'employee'>('employee')
   const [userName, setUserName] = useState('User')
@@ -293,7 +300,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             const { data: company } = await supabase.from('companies').select('name').eq('id', profile.company_id).single()
             if (company?.name) setUserCompany(company.name)
             const { data: ci } = await supabase.from('company_industries').select('industries(slug)').eq('company_id', profile.company_id).eq('is_active', true)
-            if (ci) setActiveIndustries(ci.map((c: any) => c.industries?.slug).filter(Boolean))
+            if (ci) {
+              setActiveIndustries(
+                (ci as unknown as { industries: { slug: string } | null }[])
+                  .map((c) => c.industries?.slug)
+                  .filter((s): s is string => Boolean(s))
+              )
+            }
 
             await refreshStageCounts(profile.company_id)
             await refreshPlanFeatures(profile.company_id)
