@@ -9,7 +9,7 @@ interface Employee {
   id: string
   full_name: string
   email?: string
-  phone?: string
+  mobile?: string
   department?: string
   designation?: string
   join_date?: string
@@ -142,7 +142,7 @@ export default async function EmployeesPage() {
                         </span>
                       ) : <span className="text-[#7A6E60]">—</span>}
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-[#7A6E60]">{emp.phone ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-[#7A6E60]">{emp.mobile ?? '—'}</td>
                     <td className="px-5 py-3.5 text-xs text-[#7A6E60]">
                       {emp.join_date ? new Date(emp.join_date).toLocaleDateString('en-IN') : '—'}
                     </td>
@@ -188,7 +188,7 @@ export default async function EmployeesPage() {
                   </div>
                   <div className="bg-white rounded-xl px-3 py-2 border border-[#F0EBE0]">
                     <p className="text-[10px] text-[#7A6E60] uppercase tracking-wide font-semibold">Phone</p>
-                    <p className="text-xs font-semibold text-[#1C1712] mt-0.5">{emp.phone ?? '—'}</p>
+                    <p className="text-xs font-semibold text-[#1C1712] mt-0.5">{emp.mobile ?? '—'}</p>
                   </div>
                   <div className="bg-white rounded-xl px-3 py-2 border border-[#F0EBE0] col-span-2">
                     <p className="text-[10px] text-[#7A6E60] uppercase tracking-wide font-semibold">Joined</p>

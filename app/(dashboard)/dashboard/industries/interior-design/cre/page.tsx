@@ -35,17 +35,23 @@ const ACTIVITY_COLORS: Record<string, string> = {
 type Lead = {
   id: string
   source?: string | null
+  city?: string | null
+  company_id?: string | null
+  industry?: string | null
 }
 
+// NOTE: no more nested `leads` field here — we stopped relying on the
+// `leads!inner(...)` join (see fetchAll below) because it silently drops
+// activity rows whenever the RLS policy on `leads` hides the parent lead
+// from the viewer (e.g. an admin viewing a CRE whose leads aren't visible
+// to the admin under the current `leads` RLS policy). That was the actual
+// cause of "No activities logged" even though the rows existed in the DB.
 type LeadActivity = {
   id: string
   type?: string | null
   user_id?: string | null
+  lead_id?: string | null
   created_at?: string | null
-  leads?: {
-    city?: string | null
-    source?: string | null
-  } | null
 }
 
 type Profile = {
@@ -97,34 +103,56 @@ export default function CREDashboardPage() {
       return
     }
 
-    const viewerIsAdminOrOwner = profile.role === 'admin' || profile.role === 'owner'
+    // ⚠️ FIXED: DB actually stores 'tenant_admin' / 'super_admin' as the admin roles
+    // (confirmed via profiles table + the leads RLS policy, which checks
+    // `p.role = ANY (ARRAY['tenant_admin','super_admin'])`). This code was checking
+    // for 'admin' / 'owner', which never matched — so isAdminOrOwner was always false
+    // for real admins like Hari, effectiveCreId silently fell back to the viewer's own
+    // id instead of the requested cre_id, and the page showed "My" (the viewer's own,
+    // empty) history instead of the selected CRE's history.
+    const viewerIsAdminOrOwner = profile.role === 'tenant_admin' || profile.role === 'super_admin'
     setIsAdminOrOwner(viewerIsAdminOrOwner)
     setCurrentUserId(user.id)
 
     const [leadsRes, profilesRes, activitiesRes] = await Promise.all([
-      supabase.from('leads').select('*')
+      supabase.from('leads').select('id, source, city, company_id, industry')
         .eq('company_id', profile.company_id)
         .eq('industry', 'interior-design')
         .order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email')
         .eq('company_id', profile.company_id),
+      // ⚠️ FIXED: previously this used `.select('*, leads!inner(company_id, industry, city, source)')`
+      // with `.eq('leads.company_id', ...)` / `.eq('leads.industry', ...)` filters. Because it's an
+      // INNER JOIN, any activity whose parent `leads` row was invisible under RLS to the current
+      // viewer (e.g. an admin looking at a CRE's history, if the `leads` RLS policy scopes rows to
+      // `owner_id = auth.uid()`) got silently dropped — even though the activity row itself existed
+      // and was visible. That's what caused "No activities logged" for the CRE dashboard.
+      // Fix: fetch lead_activities directly (no join), scoped only by date range + user, then
+      // cross-reference against the already-fetched `leads` list (above) in JS to enforce
+      // company/industry scoping and to pull in city/source for the charts below.
       supabase
         .from('lead_activities')
-        .select('*, leads!inner(company_id, industry, city, source)')
-        .eq('leads.company_id', profile.company_id)
-        .eq('leads.industry', 'interior-design')
+        .select('*')
         // ⚠️ IST offset explicit here — without it Postgres treats this as UTC,
         // shifting the "today" window ~5.5hrs off from the Dashboard's IST-based count.
         .gte('created_at', `${dateFrom}T00:00:00+05:30`)
         .lte('created_at', `${dateTo}T23:59:59+05:30`)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(5000),
     ])
 
     if (requestId !== fetchIdRef.current) return // a newer request already started — drop this stale one
 
-    setLeads((leadsRes.data ?? []) as Lead[])
+    const fetchedLeads = (leadsRes.data ?? []) as Lead[]
+    setLeads(fetchedLeads)
     setProfiles((profilesRes.data ?? []) as Profile[])
-    setActivities((activitiesRes.data ?? []) as LeadActivity[])
+
+    // Scope activities to this company/industry via the leads we already fetched
+    // (instead of relying on a join that can be blocked by leads RLS).
+    const leadIds = new Set(fetchedLeads.map(l => l.id))
+    const scopedByCompany = ((activitiesRes.data ?? []) as LeadActivity[])
+      .filter(a => a.lead_id && leadIds.has(a.lead_id))
+    setActivities(scopedByCompany)
     setLoading(false)
   }, [dateFrom, dateTo, supabase])
 
@@ -135,6 +163,13 @@ export default function CREDashboardPage() {
   // ⚠️ ACCESS CONTROL: whatever is in the URL, a non-admin can only ever see their own data.
   // This is the actual enforcement point — the URL param alone must never grant visibility.
   const effectiveCreId = isAdminOrOwner ? creIdParam : currentUserId
+
+  // Lookup map for city/source per lead (used since activities no longer carry a nested `leads` object)
+  const leadById = useMemo(() => {
+    const m: Record<string, Lead> = {}
+    leads.forEach(l => { m[l.id] = l })
+    return m
+  }, [leads])
 
   // ── Filter down to a single CRE's activities when effectiveCreId is present ──
   const scopedActivities = useMemo(
@@ -188,10 +223,10 @@ export default function CREDashboardPage() {
   leads.forEach(l => { const s = l.source || 'Unknown'; sourceCounts[s] = (sourceCounts[s] || 0) + 1 })
   const sourceData = Object.entries(sourceCounts).map(([name, value]) => ({ name, value }))
 
-  // 4. City-wise activities
+  // 4. City-wise activities (looked up via leadById now, since activities no longer carry nested leads data)
   const cityActivityCounts: Record<string, number> = {}
   scopedActivities.forEach(activity => {
-    const city = activity.leads?.city || 'Unknown'
+    const city = (activity.lead_id && leadById[activity.lead_id]?.city) || 'Unknown'
     cityActivityCounts[city] = (cityActivityCounts[city] || 0) + 1
   })
   const cityData = Object.entries(cityActivityCounts)

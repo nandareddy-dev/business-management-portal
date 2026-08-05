@@ -462,7 +462,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
         fontFamily: "'Inter', sans-serif",
         paddingTop: 'env(safe-area-inset-top)',
-      }} className="lg:translate-x-0">
+      }}>
 
         {/* LOGO */}
         <div style={{ padding: '20px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -473,7 +473,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <p style={{ fontSize: 9, fontWeight: 400, color: '#F5C518', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Premium Suite</p>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden"
+          {/* Cancel/Close button — now visible on desktop too, not just mobile */}
+          <button onClick={onClose} title="Close sidebar"
             style={{ width: 36, height: 36, borderRadius: 10, background: '#F5F5F3', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#888' }}>
             <X size={16} />
           </button>
@@ -652,7 +653,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         .scroll-hide { scrollbar-width: none; }
         .scroll-hide::-webkit-scrollbar { display: none; }
-        @media (min-width: 1024px) { .lg\\:translate-x-0 { transform: translateX(0) !important; } .lg\\:hidden { display: none !important; } }
+        @media (min-width: 1024px) { .lg\\:hidden { display: none !important; } }
       `}</style>
     </>
   )

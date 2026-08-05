@@ -83,7 +83,7 @@ export default async function EmployeeProfilePage() {
             {[
               { label: 'Full name', value: employee.full_name,   Icon: User },
               { label: 'Email',     value: employee.email,        Icon: Mail },
-              { label: 'Phone',     value: employee.phone ?? '—', Icon: Phone },
+              { label: 'Phone',     value: employee.mobile ?? '—', Icon: Phone },
             ].map((item, i) => (
               <div key={item.label} className={`flex items-center justify-between px-6 lg:px-8 py-3 ${i > 0 ? 'border-t border-[#F0EAE0]' : ''}`}>
                 <span className="text-[11px] text-[#9A8F82] flex items-center gap-1.5">
