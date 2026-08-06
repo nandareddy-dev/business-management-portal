@@ -917,7 +917,13 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
                                   <option value="">City</option>
                                   <optgroup label="TS">{tsCities.map(c => <option key={c}>{c}</option>)}</optgroup>
                                   <optgroup label="AP">{apCities.map(c => <option key={c}>{c}</option>)}</optgroup>
+                                  <option value="__manual__">+ Enter manually</option>
                                 </select>
+                                {lead.city === '__manual__' && (
+                                  <input type="text" placeholder="Type city name..." value={lead.manualCity}
+                                    onChange={e => updateBulkLead(i, 'manualCity', e.target.value)}
+                                    className={`${bInp} mt-1`} />
+                                )}
                               </td>
                               <td className="py-2 pr-2">
                                 <button onClick={() => removeBulkRow(i)} disabled={bulkLeads.length <= 1}
