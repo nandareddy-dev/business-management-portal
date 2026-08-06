@@ -65,7 +65,7 @@ const propertyTypes = [
   'Office Space', 'Shop / Showroom', 'Penthouse', 'Studio Apartment', 'Other',
 ]
 
-const tsCities = ['Hyderabad', 'Warangal', 'Karimnagar', 'Nizamabad', 'Khammam', 'Nalgonda', 'Rangareddy', 'Siddipet', 'Suryapet', 'Sangareddy','Bachupally']
+const tsCities = ['Hyderabad', 'Warangal', 'Karimnagar', 'Nizamabad', 'Khammam', 'Nalgonda', 'Rangareddy', 'Siddipet', 'Suryapet', 'Sangareddy']
 const apCities = ['Vijayawada', 'Visakhapatnam', 'Tirupati', 'Guntur', 'Nellore', 'Kurnool', 'Rajahmundry', 'Kakinada', 'Anantapur', 'Eluru', 'YSR Kadapa']
 
 // ─── Phone helpers ──────────────────────────────────────────────────────────
@@ -190,14 +190,12 @@ function parseCSV(text: string, knownCities: string[], knownSources: string[]): 
       return ''
     }
 
-    // City: match against the known TS/AP list case-insensitively. If the CSV
-    // has a city we don't recognize, fall back to manual entry pre-filled with
-    // the raw value — instead of leaving the dropdown blank and looking like
-    // the data never made it in.
+    // City: match against the known TS/AP list case-insensitively. If matched,
+    // use the canonical name; if not, keep the raw value as-is — the caller
+    // adds it as an extra dropdown option so it shows up selected, not blank.
     const rawCity = get(['city', 'location'])
     const cityMatch = matchOption(rawCity, knownCities)
-    const city = rawCity ? (cityMatch || '__manual__') : ''
-    const manualCity = cityMatch ? '' : rawCity
+    const city = cityMatch || rawCity
 
     // Source: match against the known list case-insensitively. If the CSV has
     // a source we don't recognize, keep the raw value as-is — the caller adds
@@ -214,7 +212,7 @@ function parseCSV(text: string, knownCities: string[], knownSources: string[]): 
       budget: get(['budget']),
       propertyType: get(['property_type', 'type', 'property']),
       city,
-      manualCity,
+      manualCity: '',
       interest: get(['interest', 'requirement']),
       status: get(['status', 'lead_status']) || 'new',
       notes: get(['notes', 'remarks']),
@@ -294,12 +292,15 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
   // list — added as extra dropdown options so an uploaded lead's source shows
   // selected instead of appearing blank.
   const [customSources, setCustomSources] = useState<string[]>([])
+  // Same idea for city — CSV localities/towns not in the built-in TS/AP list
+  // (e.g. "Bachupally") get added as extra dropdown options.
+  const [customCities, setCustomCities] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
 
   const isManualCity = singleLead.city === '__manual__'
-  // Combined dropdown list: built-in sources + any unrecognized sources pulled
+  // Combined dropdown lists: built-in options + anything unrecognized pulled
   // in from an uploaded file, so uploaded rows always show a selected value.
   const allSources = [...sources, ...customSources]
 
@@ -529,12 +530,18 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
 
     const applyParsedLeads = (leads: SingleLead[]) => {
       if (!leads.length) { setUploadError('No valid data found in the file.'); return }
-      // Collect any source strings the file used that aren't in our built-in
-      // list, so the dropdown can show them as real selected options.
-      const unmatched = [...new Set(
+      // Collect any source/city strings the file used that aren't in our
+      // built-in lists, so the dropdowns can show them as real selected options.
+      const unmatchedSources = [...new Set(
         leads.map(l => l.source.trim()).filter(s => s && !sources.includes(s))
       )]
-      if (unmatched.length) setCustomSources(prev => [...new Set([...prev, ...unmatched])])
+      if (unmatchedSources.length) setCustomSources(prev => [...new Set([...prev, ...unmatchedSources])])
+
+      const unmatchedCities = [...new Set(
+        leads.map(l => l.city.trim()).filter(c => c && c !== '__manual__' && !knownCities.includes(c))
+      )]
+      if (unmatchedCities.length) setCustomCities(prev => [...new Set([...prev, ...unmatchedCities])])
+
       setBulkLeads(leads); setUploadedFile({ name: file.name, count: leads.length })
     }
 
@@ -704,6 +711,9 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
                       <option value="">Select city</option>
                       <optgroup label="Telangana (TS)">{tsCities.map(c => <option key={c}>{c}</option>)}</optgroup>
                       <optgroup label="Andhra Pradesh (AP)">{apCities.map(c => <option key={c}>{c}</option>)}</optgroup>
+                      {customCities.length > 0 && (
+                        <optgroup label="Other">{customCities.map(c => <option key={c}>{c}</option>)}</optgroup>
+                      )}
                       <option value="__manual__">+ Enter manually</option>
                     </select>
                     <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A6E60] pointer-events-none" />
@@ -917,6 +927,9 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
                                   <option value="">City</option>
                                   <optgroup label="TS">{tsCities.map(c => <option key={c}>{c}</option>)}</optgroup>
                                   <optgroup label="AP">{apCities.map(c => <option key={c}>{c}</option>)}</optgroup>
+                                  {customCities.length > 0 && (
+                                    <optgroup label="Other">{customCities.map(c => <option key={c}>{c}</option>)}</optgroup>
+                                  )}
                                   <option value="__manual__">+ Enter manually</option>
                                 </select>
                                 {lead.city === '__manual__' && (
