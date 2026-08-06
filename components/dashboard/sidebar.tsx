@@ -179,15 +179,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [currentIndustrySlug, setCurrentIndustrySlug] = useState(industryFromUrl || 'interior-design')
 
   useEffect(() => {
+    // Intentional sync with the URL's industry segment when navigating between
+    // industries, or restore of last-selected industry from localStorage on mount.
     if (industryFromUrl) {
       localStorage.setItem('gk-active-industry', industryFromUrl)
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional sync
-      // with the URL's industry segment when navigating between industries.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentIndustrySlug(industryFromUrl)
     } else {
       const saved = localStorage.getItem('gk-active-industry')
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
-      // restore of last-selected industry from localStorage on mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved && INDUSTRIES[saved]) setCurrentIndustrySlug(saved)
     }
   }, [pathname, industryFromUrl])

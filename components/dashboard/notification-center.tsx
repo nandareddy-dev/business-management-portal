@@ -121,8 +121,8 @@ export function NotificationCenter() {
   // effects — so the lint rule's "impure during render" concern doesn't
   // apply here in practice; suppressed rather than restructured into a
   // ref/effect pair that would add complexity for no real benefit.
-  // eslint-disable-next-line react-hooks/purity -- read-only relative-time formatting, not a stateful side effect
   function timeAgo(dateStr: string) {
+    // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
     if (mins < 1) return 'just now'

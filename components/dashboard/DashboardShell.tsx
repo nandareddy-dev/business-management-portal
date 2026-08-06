@@ -17,10 +17,10 @@ export default function DashboardShell({ children, userName, userEmail, userRole
   // On desktop, open the sidebar by default after mount (mobile stays closed
   // until the menu button is tapped). Checking window.innerWidth in a client
   // effect avoids SSR/hydration mismatches from reading window during render.
+  // One-time sync with window size on mount; there is no external-system
+  // subscription here, just reading a value that only exists client-side.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync
-    // with window size on mount; there is no external-system subscription here,
-    // just reading a value that only exists client-side.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (window.innerWidth >= 1024) setSidebarOpen(true)
   }, [])
 

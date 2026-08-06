@@ -82,10 +82,10 @@ export default function EmployeeAttendancePage() {
     finally { setLoading(false) }
   }, [supabase, router, monthStart, monthEnd])
 
+  // Intentional refetch on month navigation; loadData itself sets loading=false
+  // when done, this just flips the spinner on immediately for a responsive switch.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional
-    // refetch on month navigation; loadData itself sets loading=false when done,
-    // this just flips the spinner on immediately for a responsive month switch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     loadData()
   }, [loadData])

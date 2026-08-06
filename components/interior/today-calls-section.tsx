@@ -370,6 +370,7 @@ export function TodayCallsSection({
   // performance automatically on mount instead of requiring an interaction.
   useEffect(() => {
     if (!isAdminOrOwner) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadPerf(currentUserId, selectedName)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
