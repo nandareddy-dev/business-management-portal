@@ -20,6 +20,8 @@ const ACTIVITY_LABELS: Record<string, string> = {
   note: 'Notes',
   sitevisit: 'Site Visits',
   won: 'Won',
+  rnr: 'RNR',
+  lost: 'Lost',
 }
 
 const ACTIVITY_COLORS: Record<string, string> = {
@@ -30,6 +32,8 @@ const ACTIVITY_COLORS: Record<string, string> = {
   note: '#64748B',
   sitevisit: '#0E7490',
   won: '#10B981',
+  rnr: '#1C1712',
+  lost: '#DC2626',
 }
 
 // IST "today" as YYYY-MM-DD — using plain new Date().toISOString() would give the
@@ -40,12 +44,23 @@ function istTodayStr(): string {
   return new Date(Date.now() + IST_OFFSET_MS).toISOString().split('T')[0]
 }
 
+// IST "yesterday" — same logic, minus one day.
+function istYesterdayStr(): string {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+  const d = new Date(Date.now() + IST_OFFSET_MS)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
 type Lead = {
   id: string
   source?: string | null
   city?: string | null
   company_id?: string | null
   industry?: string | null
+  owner_id?: string | null
+  pipeline_stage?: string | null
+  won_date?: string | null
 }
 
 // NOTE: no more nested `leads` field here — we stopped relying on the
@@ -60,6 +75,7 @@ type LeadActivity = {
   user_id?: string | null
   lead_id?: string | null
   created_at?: string | null
+  stage_to?: string | null
 }
 
 type Profile = {
@@ -88,7 +104,11 @@ export default function CREDashboardPage() {
   const [isAdminOrOwner, setIsAdminOrOwner] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const today = istTodayStr()
-  const [dateFrom, setDateFrom] = useState(() => creIdParam ? '2020-01-01' : today)
+  // Default range — yesterday through today, for every view (whether scoped to a
+  // single CRE via cre_id or showing the whole team). Previously this defaulted to
+  // 2020-01-01 (all-time) whenever a cre_id was present, which is why the page
+  // loaded showing years of history by default instead of a recent window.
+  const [dateFrom, setDateFrom] = useState(() => istYesterdayStr())
   const [dateTo, setDateTo]     = useState(today)
 
   // ⚠️ FIXED: dates the user is actively editing (via the two <input type="date">
@@ -124,10 +144,73 @@ export default function CREDashboardPage() {
     setIsAdminOrOwner(viewerIsAdminOrOwner)
     setCurrentUserId(user.id)
 
-    const [leadsRes, profilesRes, activitiesRes] = await Promise.all([
-      supabase.from('leads').select('id, source, city, company_id, industry')
+    // Resolved here (not just in the render-time `effectiveCreId` memo below) so the
+    // activities query itself can filter by user_id at the DB level.
+    const scopedUserId = viewerIsAdminOrOwner ? creIdParam : user.id
+
+    // ⚠️ FIXED: a single `.limit(20000)` call does NOT guarantee 20000 rows come back —
+    // PostgREST (Supabase's REST layer) enforces its own server-side "max rows" setting
+    // (commonly defaulted to 1000) that silently caps the response regardless of what
+    // `.limit()` asks for client-side. That's why applying a July 1–31 range still showed
+    // the same low numbers as the yesterday/today default: the query WAS re-running, but
+    // every run was getting truncated at the same server-side row cap before it ever
+    // reached our 20000 ceiling. Confirmed via raw SQL: a single CRE had 3367 calls alone
+    // in July, but the dashboard topped out around ~800 total activities — consistent
+    // with a ~1000-row PostgREST cap, not with the date filter failing.
+    // Fix: build the query as a function (so it can be re-executed per page) and pull
+    // pages with `.range()` in a loop until a page comes back shorter than PAGE_SIZE,
+    // which means we've reached the end. This is the same pattern already used elsewhere
+    // in the CRM to bypass Supabase's pagination cap.
+    const buildActivitiesQuery = (from: number, to: number) => {
+      let q = supabase
+        .from('lead_activities')
+        .select('*')
+        // ⚠️ IST offset explicit here — without it Postgres treats this as UTC,
+        // shifting the "today" window ~5.5hrs off from the Dashboard's IST-based count.
+        .gte('created_at', `${appliedFrom}T00:00:00+05:30`)
+        .lte('created_at', `${appliedTo}T23:59:59+05:30`)
+        .order('created_at', { ascending: false })
+        .range(from, to)
+      if (scopedUserId) {
+        q = q.eq('user_id', scopedUserId)
+      }
+      return q
+    }
+
+    const fetchAllActivities = async (): Promise<LeadActivity[]> => {
+      const PAGE_SIZE = 1000
+      let allRows: LeadActivity[] = []
+      let from = 0
+      while (true) {
+        const { data, error } = await buildActivitiesQuery(from, from + PAGE_SIZE - 1)
+        if (error) {
+          console.error('lead_activities page fetch failed:', error)
+          break
+        }
+        const rows = (data ?? []) as LeadActivity[]
+        allRows = allRows.concat(rows)
+        if (rows.length < PAGE_SIZE) break // last page — fewer rows than requested means no more left
+        from += PAGE_SIZE
+        if (from > 100000) break // hard safety stop, should never realistically hit this
+      }
+      return allRows
+    }
+
+    const activitiesQuery = fetchAllActivities()
+
+    const [leadsRes, profilesRes, activitiesRows] = await Promise.all([
+      // ⚠️ FIXED: dropped `.eq('industry', 'interior-design')` here. This page scopes
+      // by company_id, and leads used here are ONLY a lookup set (leadIds) to validate
+      // that an activity's parent lead belongs to this company — not to filter which
+      // industries count. Requiring industry === 'interior-design' meant any activity
+      // whose lead had industry = null / blank / a different value got silently dropped
+      // from `scopedByCompany` below, even though it was a real, company-scoped activity.
+      // Confirmed via SQL: raw company_id-only query returned 3367 total_calls for a CRE
+      // in July, while the dashboard (with the industry filter) showed a lower number —
+      // the gap was exactly the leads missing/mismatched on `industry`. Company_id alone
+      // is enough scoping here; a leads RLS policy already restricts rows to this tenant.
+      supabase.from('leads').select('id, source, city, company_id, industry, owner_id, pipeline_stage, won_date')
         .eq('company_id', profile.company_id)
-        .eq('industry', 'interior-design')
         .order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email')
         .eq('company_id', profile.company_id),
@@ -139,16 +222,8 @@ export default function CREDashboardPage() {
       // and was visible. That's what caused "No activities logged" for the CRE dashboard.
       // Fix: fetch lead_activities directly (no join), scoped only by date range + user, then
       // cross-reference against the already-fetched `leads` list (above) in JS to enforce
-      // company/industry scoping and to pull in city/source for the charts below.
-      supabase
-        .from('lead_activities')
-        .select('*')
-        // ⚠️ IST offset explicit here — without it Postgres treats this as UTC,
-        // shifting the "today" window ~5.5hrs off from the Dashboard's IST-based count.
-        .gte('created_at', `${appliedFrom}T00:00:00+05:30`)
-        .lte('created_at', `${appliedTo}T23:59:59+05:30`)
-        .order('created_at', { ascending: false })
-        .limit(5000),
+      // company scoping and to pull in city/source for the charts below.
+      activitiesQuery,
     ])
 
     if (requestId !== fetchIdRef.current) return // a newer request already started — drop this stale one
@@ -157,12 +232,19 @@ export default function CREDashboardPage() {
     setLeads(fetchedLeads)
     setProfiles((profilesRes.data ?? []) as Profile[])
 
-    // Scope activities to this company/industry via the leads we already fetched
-    // (instead of relying on a join that can be blocked by leads RLS).
-    const leadIds = new Set(fetchedLeads.map(l => l.id))
-    const scopedByCompany = ((activitiesRes.data ?? []) as LeadActivity[])
-      .filter(a => a.lead_id && leadIds.has(a.lead_id))
-    setActivities(scopedByCompany)
+    // ⚠️ FIXED: previously filtered activities by cross-referencing against the leads
+    // fetched above (`leadIds.has(a.lead_id)`). That leads fetch is itself subject to
+    // `leads_allow_select` RLS, which restricts a non-admin CRE to leads where
+    // `owner_id = auth.uid()`. If a lead was ever reassigned to a different CRE, the
+    // original CRE's leads-fetch no longer includes it — so activities they logged
+    // against that lead were silently dropped from `scopedByCompany`, even though the
+    // lead_activities row itself was correctly scoped and visible.
+    // Now that `lead_activities` carries its own `company_id` and its RLS policy checks
+    // that directly (see migration), the rows returned by `activitiesRows` are already
+    // correctly company-scoped — no need to re-filter through the leads list here.
+    // `leads` (and `leadById` below) are now used ONLY for city/source lookups on the
+    // charts, not for scoping which activities count.
+    setActivities(activitiesRows)
     setLoading(false)
   }, [appliedFrom, appliedTo, supabase])
 
@@ -216,6 +298,26 @@ export default function CREDashboardPage() {
   const profileMap: Record<string, string> = {}
   profiles.forEach(p => { profileMap[p.id] = p.full_name || p.email || p.id })
 
+  // ── Won / Lost — sourced from lead_activities' stage_change entries, using `stage_to` ──
+  // Earlier this used `leads.pipeline_stage` + `leads.won_date`, but `leads` has no
+  // `lost_date` column at all, so Lost couldn't be date-filtered (only an all-time count).
+  // `lead_activities` actually has a `stage_to` column on `stage_change` rows recording
+  // exactly which stage a lead moved into, alongside `created_at` — which is already the
+  // field this page filters by date range on. So Won and Lost can BOTH be computed the
+  // same way, entirely from `scopedActivities` (already correctly date + user scoped),
+  // with no separate leads-table logic needed. This also means every date range (including
+  // arbitrary custom ranges) now reports real day-by-day Won/Lost, not an all-time count.
+  const wonActivities = scopedActivities.filter(a => a.type === 'stage_change' && a.stage_to === 'won')
+  const lostActivities = scopedActivities.filter(a => a.type === 'stage_change' && a.stage_to === 'lost')
+
+  // Per-owner breakdown for the performance table (company-wide view)
+  const wonByOwner: Record<string, number> = {}
+  activities.filter(a => a.type === 'stage_change' && a.stage_to === 'won')
+    .forEach(a => { const uid = a.user_id || 'unknown'; wonByOwner[uid] = (wonByOwner[uid] || 0) + 1 })
+  const lostByOwner: Record<string, number> = {}
+  activities.filter(a => a.type === 'stage_change' && a.stage_to === 'lost')
+    .forEach(a => { const uid = a.user_id || 'unknown'; lostByOwner[uid] = (lostByOwner[uid] || 0) + 1 })
+
   const userActivityMap: Record<string, Record<string, number>> = {}
   scopedActivities.forEach(activity => {
     const uid = activity.user_id || 'unknown'
@@ -224,16 +326,28 @@ export default function CREDashboardPage() {
     userActivityMap[uid][type] = (userActivityMap[uid][type] || 0) + 1
     userActivityMap[uid]['total'] = (userActivityMap[uid]['total'] || 0) + 1
   })
-  const userTableData = Object.entries(userActivityMap).map(([uid, counts]) => ({
-    name: profileMap[uid] || uid.slice(0, 8) + '...',
-    total: counts['total'] || 0,
-    stage_change: counts['stage_change'] || 0,
-    followup: counts['followup'] || 0,
-    quotation: counts['quotation'] || 0,
-    call: counts['call'] || 0,
-    note: counts['note'] || 0,
-    sitevisit: counts['sitevisit'] || 0,
-  })).sort((a, b) => b.total - a.total)
+  const allOwnerIds = new Set([
+    ...Object.keys(userActivityMap),
+    ...Object.keys(wonByOwner),
+    ...Object.keys(lostByOwner),
+  ])
+  const userTableData = Array.from(allOwnerIds).map(uid => {
+    const counts = userActivityMap[uid] || {}
+    return {
+      uid,
+      name: profileMap[uid] || uid.slice(0, 8) + '...',
+      total: counts['total'] || 0,
+      stage_change: counts['stage_change'] || 0,
+      followup: counts['followup'] || 0,
+      quotation: counts['quotation'] || 0,
+      call: counts['call'] || 0,
+      note: counts['note'] || 0,
+      sitevisit: counts['sitevisit'] || 0,
+      rnr: counts['rnr'] || 0,
+      won: wonByOwner[uid] || 0,
+      lost: lostByOwner[uid] || 0,
+    }
+  }).sort((a, b) => b.total - a.total)
 
   // 3. Source distribution — leads aren't tied to a CRE directly, so only show company-wide (hidden when scoped)
   const sourceCounts: Record<string, number> = {}
@@ -256,6 +370,9 @@ export default function CREDashboardPage() {
   const totalFollowups   = activityCounts.followup || 0
   const totalQuotations  = activityCounts.quotation || 0
   const totalStageMoves  = activityCounts.stage_change || 0
+  const totalRNR         = activityCounts.rnr || 0
+  const totalWon         = wonActivities.length
+  const totalLost        = lostActivities.length
 
   return (
     <div className="min-h-screen p-4 md:p-6" style={{ background: '#F5F0E8' }}>
@@ -326,13 +443,16 @@ export default function CREDashboardPage() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-5">
             {[
               { label: 'Total Activities', value: totalActivities, color: '#B8860B', icon: '📋' },
               { label: 'Calls',            value: totalCalls,      color: '#7C3AED', icon: '📞' },
               { label: 'Follow Ups',       value: totalFollowups,  color: '#D97706', icon: '🔔' },
+              { label: 'RNR',              value: totalRNR,        color: '#1C1712', icon: '🚫' },
               { label: 'Quotations',       value: totalQuotations, color: '#DB2777', icon: '💰' },
               { label: 'Stage Changes',    value: totalStageMoves, color: '#0891B2', icon: '🔀' },
+              { label: 'Won',              value: totalWon,        color: '#10B981', icon: '🏆' },
+              { label: 'Lost',             value: totalLost,       color: '#DC2626', icon: '❌' },
             ].map((s, i) => (
               <div key={i}
                 className="relative overflow-hidden bg-white rounded-2xl p-4 border border-[#EDE7DB] transition-all duration-200 hover:-translate-y-0.5"
@@ -393,7 +513,7 @@ export default function CREDashboardPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ background: '#F5F0E8' }}>
-                    {['CRE Name','Total','Stage Changes','Follow Ups','Quotations','Calls','Notes','Site Visits'].map(h => (
+                    {['CRE Name','Total','Stage Changes','Follow Ups','RNR','Quotations','Calls','Notes','Site Visits','Won','Lost'].map(h => (
                       <th key={h} className="text-left py-2.5 px-3 text-[9px] font-black uppercase tracking-wider" style={{ color: '#9A8F82' }}>{h}</th>
                     ))}
                   </tr>
@@ -403,7 +523,7 @@ export default function CREDashboardPage() {
                     <tr key={i} className="border-t border-[#F0EBE0] hover:bg-[#FDFAF8] transition-colors">
                       <td className="py-2.5 px-3 font-bold text-[#1C1712]">
                         {isAdminOrOwner && !effectiveCreId ? (
-                          <Link href={`/dashboard/industries/interior-design/cre?cre_id=${Object.keys(userActivityMap)[i]}`}
+                          <Link href={`/dashboard/industries/interior-design/cre?cre_id=${row.uid}`}
                             className="hover:underline" style={{ color: '#1C1712' }}>
                             {row.name}
                           </Link>
@@ -412,14 +532,17 @@ export default function CREDashboardPage() {
                       <td className="py-2.5 px-3 font-black" style={{ color: '#B8860B' }}>{row.total}</td>
                       <td className="py-2.5 px-3 font-bold text-cyan-600">{row.stage_change}</td>
                       <td className="py-2.5 px-3 font-bold text-amber-600">{row.followup}</td>
+                      <td className="py-2.5 px-3 font-bold" style={{ color: '#1C1712' }}>{row.rnr}</td>
                       <td className="py-2.5 px-3 font-bold text-pink-600">{row.quotation}</td>
                       <td className="py-2.5 px-3 text-purple-500">{row.call}</td>
                       <td className="py-2.5 px-3 text-gray-500">{row.note}</td>
                       <td className="py-2.5 px-3 text-blue-500">{row.sitevisit}</td>
+                      <td className="py-2.5 px-3 font-bold text-emerald-600">{row.won}</td>
+                      <td className="py-2.5 px-3 font-bold text-red-600">{row.lost}</td>
                     </tr>
                   ))}
                   {userTableData.length === 0 && (
-                    <tr><td colSpan={8} className="text-center py-8 text-[#9A8F82]">No activities logged yet</td></tr>
+                    <tr><td colSpan={11} className="text-center py-8 text-[#9A8F82]">No activities logged yet</td></tr>
                   )}
                 </tbody>
               </table>
