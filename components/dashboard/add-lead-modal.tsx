@@ -41,6 +41,16 @@ const emptyLead: SingleLead = {
 // Placeholder texts shown in inputs — NEVER allow these to be saved as real values.
 const BUDGET_PLACEHOLDER_PATTERNS = ['₹5–8l', '₹5-8l']
 
+// Statuses that mean "this old lead is dead" — if a duplicate phone matches a lead
+// in one of these states, it's reactivated (moved back to New) instead of being
+// treated as a blocking duplicate. Any other status still blocks as a true duplicate.
+const REACTIVATABLE_STATUSES = new Set(['lost', 'not_interested', 'notinterested'])
+
+function isReactivatableStatus(s?: string | null): boolean {
+  if (!s) return false
+  return REACTIVATABLE_STATUSES.has(s.toLowerCase().trim().replace(/\s+/g, '_'))
+}
+
 const sources = [
   'Instagram', 'Facebook', 'WhatsApp', 'Google Ads', 'YouTube',
   'LinkedIn', 'Justdial', 'IndiaMART', 'UrbanClap', 'Housing.com',
@@ -138,7 +148,35 @@ function toRow(lead: SingleLead, companyId: string | null, industry: string) {
   }
 }
 
-function parseCSV(text: string): SingleLead[] {
+// Fields to overwrite on an existing DB row when reactivating a lost/not-interested
+// lead back to fresh — carries the new contact's updated info onto the old record
+// instead of leaving stale data, while resetting the pipeline position to New.
+function toReactivateRow(lead: SingleLead) {
+  const finalCity = lead.city === '__manual__' ? lead.manualCity : lead.city
+  return {
+    lead_name: lead.name.trim(),
+    email: lead.email.trim() || null,
+    source: lead.source || null,
+    status: 'New',
+    pipeline_stage: 'new',
+    budget: cleanBudget(lead.budget),
+    property_type: lead.propertyType || null,
+    city: finalCity || null,
+    interest: lead.interest || null,
+    notes: lead.notes || null,
+  }
+}
+
+// Case/whitespace-insensitive match against a known options list — returns the
+// canonical option string if found, otherwise null.
+function matchOption(raw: string, options: string[]): string | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  const found = options.find(o => o.toLowerCase() === trimmed.toLowerCase())
+  return found || null
+}
+
+function parseCSV(text: string, knownCities: string[], knownSources: string[]): SingleLead[] {
   const lines = text.trim().split(/\r?\n/)
   if (lines.length < 2) return []
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'))
@@ -151,15 +189,32 @@ function parseCSV(text: string): SingleLead[] {
       }
       return ''
     }
+
+    // City: match against the known TS/AP list case-insensitively. If the CSV
+    // has a city we don't recognize, fall back to manual entry pre-filled with
+    // the raw value — instead of leaving the dropdown blank and looking like
+    // the data never made it in.
+    const rawCity = get(['city', 'location'])
+    const cityMatch = matchOption(rawCity, knownCities)
+    const city = rawCity ? (cityMatch || '__manual__') : ''
+    const manualCity = cityMatch ? '' : rawCity
+
+    // Source: match against the known list case-insensitively. If the CSV has
+    // a source we don't recognize, keep the raw value as-is — the caller adds
+    // it as an extra dropdown option so it still shows selected, not blank.
+    const rawSource = get(['source', 'lead_source'])
+    const sourceMatch = matchOption(rawSource, knownSources)
+    const source = sourceMatch || rawSource
+
     return {
       name: get(['name', 'full_name', 'lead_name']),
       phone: get(['phone', 'mobile', 'contact']),
       email: get(['email', 'email_address']) || '',
-      source: get(['source', 'lead_source']),
+      source,
       budget: get(['budget']),
       propertyType: get(['property_type', 'type', 'property']),
-      city: get(['city', 'location']),
-      manualCity: '',
+      city,
+      manualCity,
       interest: get(['interest', 'requirement']),
       status: get(['status', 'lead_status']) || 'new',
       notes: get(['notes', 'remarks']),
@@ -235,11 +290,18 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
   const [dbDuplicatePhones, setDbDuplicatePhones] = useState<Set<string>>(new Set())
   const [errorShakeKey, setErrorShakeKey] = useState(0)
   const [newRowIndices, setNewRowIndices] = useState<Set<number>>(new Set())
+  // Source values found in an uploaded file that aren't in the built-in `sources`
+  // list — added as extra dropdown options so an uploaded lead's source shows
+  // selected instead of appearing blank.
+  const [customSources, setCustomSources] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
 
   const isManualCity = singleLead.city === '__manual__'
+  // Combined dropdown list: built-in sources + any unrecognized sources pulled
+  // in from an uploaded file, so uploaded rows always show a selected value.
+  const allSources = [...sources, ...customSources]
 
   // ── Computed counts (derived from current bulkLeads) ──
   const noPhoneCount = bulkLeads.filter(l => l.name.trim() && !l.phone.trim()).length
@@ -306,21 +368,35 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
         const phoneDigits = getPhoneDigits(singleLead.phone)
 
         const { data: candidates } = await supabase
-          .from('leads').select('id, lead_name, phone')
+          .from('leads').select('id, lead_name, phone, pipeline_stage, status')
           .eq('company_id', companyId)
           .like('phone', `%${phoneDigits}`)
 
         const existing = candidates?.find(c => isSamePhone(c.phone || '', singleLead.phone))
 
         if (existing) {
-          pushErrors([`⚠ Phone ${formatIndianPhone(singleLead.phone)} already exists — registered as "${existing.lead_name}".`])
-          setLoading(false); return
-        }
-
-        const { error } = await supabase.from('leads').insert(toRow(singleLead, companyId, industry))
-        if (error) {
-          pushErrors([error.code === '23505' ? '⚠ This phone number is already registered' : `Save failed: ${error.message}`])
-          setLoading(false); return
+          const existingStatus = existing.pipeline_stage || existing.status
+          if (isReactivatableStatus(existingStatus)) {
+            // Old lead is lost / not-interested — reactivate it back to fresh
+            // instead of blocking as a duplicate.
+            const { error: reactivateError } = await supabase
+              .from('leads')
+              .update(toReactivateRow(singleLead))
+              .eq('id', existing.id)
+            if (reactivateError) {
+              pushErrors([`Reactivate failed: ${reactivateError.message}`])
+              setLoading(false); return
+            }
+          } else {
+            pushErrors([`⚠ Phone ${formatIndianPhone(singleLead.phone)} already exists — registered as "${existing.lead_name}".`])
+            setLoading(false); return
+          }
+        } else {
+          const { error } = await supabase.from('leads').insert(toRow(singleLead, companyId, industry))
+          if (error) {
+            pushErrors([error.code === '23505' ? '⚠ This phone number is already registered' : `Save failed: ${error.message}`])
+            setLoading(false); return
+          }
         }
 
       } else {
@@ -341,27 +417,47 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
         const orFilter = digitsInBatch.map(d => `phone.like.%${d}`).join(',')
         const { data: existingInDB } = orFilter
           ? await supabase
-              .from('leads').select('phone, lead_name')
+              .from('leads').select('id, phone, lead_name, pipeline_stage, status')
               .eq('company_id', companyId)
               .or(orFilter)
-          : { data: [] as { phone: string; lead_name: string }[] }
+          : { data: [] as { id: string; phone: string; lead_name: string; pipeline_stage: string | null; status: string | null }[] }
 
         const matchedDupes = (existingInDB || []).filter(e =>
           phonesInBatch.some(p => isSamePhone(e.phone || '', p))
         )
 
-        if (matchedDupes.length > 0) {
-          const dupPhones = new Set(matchedDupes.map(e => getPhoneDigits(e.phone)))
+        // Split matches: lost/not-interested → reactivate; anything else → true blocking duplicate.
+        const reactivateMatches = matchedDupes.filter(e => isReactivatableStatus(e.pipeline_stage || e.status))
+        const blockingMatches   = matchedDupes.filter(e => !isReactivatableStatus(e.pipeline_stage || e.status))
+
+        if (blockingMatches.length > 0) {
+          const dupPhones = new Set(blockingMatches.map(e => getPhoneDigits(e.phone)))
           setDbDuplicatePhones(dupPhones)
-          const dupList = matchedDupes.map(e => `${formatIndianPhone(e.phone)} (${e.lead_name})`).join(', ')
+          const dupList = blockingMatches.map(e => `${formatIndianPhone(e.phone)} (${e.lead_name})`).join(', ')
           pushErrors([`⚠ Already exists in DB: ${dupList}`])
           setLoading(false); return
         }
 
-        const { error } = await supabase.from('leads').insert(validLeads.map(l => toRow(l, companyId, industry)))
-        if (error) {
-          pushErrors([error.code === '23505' ? '⚠ One or more phone numbers already registered' : `Save failed: ${error.message}`])
-          setLoading(false); return
+        // Reactivate any lost/not-interested matches — carry the fresh data onto
+        // the existing record and reset its pipeline stage to New.
+        if (reactivateMatches.length > 0) {
+          for (const match of reactivateMatches) {
+            const matchedLead = validLeads.find(l => isSamePhone(l.phone, match.phone))
+            if (!matchedLead) continue
+            await supabase.from('leads').update(toReactivateRow(matchedLead)).eq('id', match.id)
+          }
+        }
+
+        // Insert only the leads that weren't just reactivated above.
+        const reactivatedDigits = new Set(reactivateMatches.map(e => getPhoneDigits(e.phone)))
+        const leadsToInsert = validLeads.filter(l => !reactivatedDigits.has(getPhoneDigits(l.phone)))
+
+        if (leadsToInsert.length > 0) {
+          const { error } = await supabase.from('leads').insert(leadsToInsert.map(l => toRow(l, companyId, industry)))
+          if (error) {
+            pushErrors([error.code === '23505' ? '⚠ One or more phone numbers already registered' : `Save failed: ${error.message}`])
+            setLoading(false); return
+          }
         }
       }
 
@@ -429,15 +525,26 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
     const isXLSX = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
     if (!isCSV && !isXLSX) { setUploadError('Only .csv, .xlsx, or .xls files supported.'); return }
 
+    const knownCities = [...tsCities, ...apCities]
+
+    const applyParsedLeads = (leads: SingleLead[]) => {
+      if (!leads.length) { setUploadError('No valid data found in the file.'); return }
+      // Collect any source strings the file used that aren't in our built-in
+      // list, so the dropdown can show them as real selected options.
+      const unmatched = [...new Set(
+        leads.map(l => l.source.trim()).filter(s => s && !sources.includes(s))
+      )]
+      if (unmatched.length) setCustomSources(prev => [...new Set([...prev, ...unmatched])])
+      setBulkLeads(leads); setUploadedFile({ name: file.name, count: leads.length })
+    }
+
     if (isXLSX) {
       const reader = new FileReader()
       reader.onload = (e) => {
         import('xlsx').then(XLSX => {
           const wb = XLSX.read(e.target?.result, { type: 'array' })
           const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]])
-          const leads = parseCSV(csv)
-          if (!leads.length) { setUploadError('No valid data found in the file.'); return }
-          setBulkLeads(leads); setUploadedFile({ name: file.name, count: leads.length })
+          applyParsedLeads(parseCSV(csv, knownCities, sources))
         }).catch(() => setUploadError('Install xlsx package: npm i xlsx'))
       }
       reader.readAsArrayBuffer(file); return
@@ -445,9 +552,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
 
     const reader = new FileReader()
     reader.onload = (e) => {
-      const leads = parseCSV(e.target?.result as string)
-      if (!leads.length) { setUploadError('No valid data found in the file.'); return }
-      setBulkLeads(leads); setUploadedFile({ name: file.name, count: leads.length })
+      applyParsedLeads(parseCSV(e.target?.result as string, knownCities, sources))
     }
     reader.readAsText(file)
   }
@@ -794,7 +899,7 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
                               <td className="py-2 pr-2">
                                 <select value={lead.source} onChange={e => updateBulkLead(i, 'source', e.target.value)} className={bInp}>
                                   <option value="">Source</option>
-                                  {sources.map(s => <option key={s}>{s}</option>)}
+                                  {allSources.map(s => <option key={s}>{s}</option>)}
                                 </select>
                               </td>
                               <td className="py-2 pr-2">
