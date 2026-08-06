@@ -339,10 +339,8 @@ export default async function InteriorDesignDashboard() {
             { label:'Won',         value:wonLeads,    color:'#10B981', icon:'🏆', bg:'#F0FDF9' },
             { label:'Today New',   value:todayLeads,  color:'#F5A623', icon:'📅', bg:'#FFF8ED' },
           ].map((s,i) => (
-            <div key={i} className="card-hover rounded-2xl md:rounded-[20px] p-2.5 md:p-4" style={{ background:'#fff', boxShadow:'0 1px 2px rgba(16,24,40,0.04), 0 8px 20px rgba(16,24,40,0.04)' }}>
-              <div className="flex items-center justify-between mb-1.5 md:mb-3">
-                <div className="w-7 h-7 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center text-sm md:text-lg" style={{ background:s.bg }}>{s.icon}</div>
-              </div>
+            <div key={i} className="card-hover rounded-2xl md:rounded-[20px] p-2.5 md:p-4 flex flex-col items-center text-center" style={{ background:'#fff', boxShadow:'0 1px 2px rgba(16,24,40,0.04), 0 8px 20px rgba(16,24,40,0.04)' }}>
+              <div className="w-7 h-7 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center text-sm md:text-lg mb-1.5 md:mb-3" style={{ background:s.bg }}>{s.icon}</div>
               <p className="text-[8px] md:text-[10px] font-semibold leading-tight" style={{ color:'#9CA3AF' }}>{s.label}</p>
               <p className="text-base md:text-2xl font-black tracking-tight mt-0.5" style={{ color:'#111827' }}>{s.value}</p>
             </div>
