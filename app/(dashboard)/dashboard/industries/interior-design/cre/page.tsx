@@ -32,6 +32,14 @@ const ACTIVITY_COLORS: Record<string, string> = {
   won: '#10B981',
 }
 
+// IST "today" as YYYY-MM-DD — using plain new Date().toISOString() would give the
+// UTC date, which drifts a day behind India during early-morning IST hours
+// (00:00–05:29 IST is still "yesterday" in UTC). Matches the Dashboard's IST logic.
+function istTodayStr(): string {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+  return new Date(Date.now() + IST_OFFSET_MS).toISOString().split('T')[0]
+}
+
 type Lead = {
   id: string
   source?: string | null
@@ -79,15 +87,17 @@ export default function CREDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [isAdminOrOwner, setIsAdminOrOwner] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const today = new Date().toISOString().split('T')[0]
-  // ⚠️ FIXED: previously dateFrom started at `today` for everyone, then a separate
-  // useEffect reset it to '2020-01-01' when cre_id was present. That created two
-  // competing fetches on mount (today-only, then all-time) — whichever response
-  // landed last would "win", causing inconsistent/wrong results depending on network
-  // timing. Now the correct starting range is set ONCE, on the very first render,
-  // so only one fetch ever fires on mount.
+  const today = istTodayStr()
   const [dateFrom, setDateFrom] = useState(() => creIdParam ? '2020-01-01' : today)
   const [dateTo, setDateTo]     = useState(today)
+
+  // ⚠️ FIXED: dates the user is actively editing (via the two <input type="date">
+  // fields) no longer trigger an automatic fetch on every change — typing/picking
+  // a date only updates these draft values. A fetch only fires when "Apply" is
+  // clicked (or on initial mount), so there's no race between a half-typed date
+  // and the query, and the count on screen always matches the range actually applied.
+  const [appliedFrom, setAppliedFrom] = useState(dateFrom)
+  const [appliedTo, setAppliedTo]     = useState(dateTo)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -135,8 +145,8 @@ export default function CREDashboardPage() {
         .select('*')
         // ⚠️ IST offset explicit here — without it Postgres treats this as UTC,
         // shifting the "today" window ~5.5hrs off from the Dashboard's IST-based count.
-        .gte('created_at', `${dateFrom}T00:00:00+05:30`)
-        .lte('created_at', `${dateTo}T23:59:59+05:30`)
+        .gte('created_at', `${appliedFrom}T00:00:00+05:30`)
+        .lte('created_at', `${appliedTo}T23:59:59+05:30`)
         .order('created_at', { ascending: false })
         .limit(5000),
     ])
@@ -154,11 +164,18 @@ export default function CREDashboardPage() {
       .filter(a => a.lead_id && leadIds.has(a.lead_id))
     setActivities(scopedByCompany)
     setLoading(false)
-  }, [dateFrom, dateTo, supabase])
+  }, [appliedFrom, appliedTo, supabase])
 
+  // Fetches on mount, and again whenever the APPLIED range changes (i.e. after
+  // clicking Apply) — never on every keystroke in the date inputs.
   useEffect(() => {
     void Promise.resolve().then(fetchAll)
   }, [fetchAll])
+
+  const handleApply = () => {
+    setAppliedFrom(dateFrom)
+    setAppliedTo(dateTo)
+  }
 
   // ⚠️ ACCESS CONTROL: whatever is in the URL, a non-admin can only ever see their own data.
   // This is the actual enforcement point — the URL param alone must never grant visibility.
@@ -290,7 +307,7 @@ export default function CREDashboardPage() {
         <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
           className="border rounded-xl px-3 py-2 text-sm outline-none transition-all focus:shadow-[0_0_0_3px_rgba(184,134,11,0.10)]"
           style={{ borderColor: '#B8860B', background: '#F7F5F1' }} />
-        <button onClick={fetchAll}
+        <button onClick={handleApply}
           className="px-4 py-2 rounded-xl text-sm font-black text-white flex items-center gap-2 transition-all hover:scale-105"
           style={{ background: 'linear-gradient(135deg, #B8860B, #D97706)', boxShadow: '0 4px 12px rgba(184,134,11,0.35)' }}>
           <RefreshCw size={14} /> Apply
