@@ -415,15 +415,30 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
           setLoading(false); return
         }
 
-        const orFilter = digitsInBatch.map(d => `phone.like.%${d}`).join(',')
-        const { data: existingInDB } = orFilter
-          ? await supabase
-              .from('leads').select('id, phone, lead_name, pipeline_stage, status')
-              .eq('company_id', companyId)
-              .or(orFilter)
-          : { data: [] as { id: string; phone: string; lead_name: string; pipeline_stage: string | null; status: string | null }[] }
+        // Chunk the duplicate-check lookup — a single `.or()` filter with hundreds
+        // of clauses can exceed Supabase's query/URL size limits and silently
+        // return incomplete results, letting real duplicates slip through to the
+        // insert (where they'd fail as a generic, unhelpful 23505 error). Chunking
+        // keeps every query well within limits regardless of batch size.
+        const CHUNK_SIZE = 150
+        type ExistingLeadRow = { id: string; phone: string; lead_name: string; pipeline_stage: string | null; status: string | null }
+        const existingInDB: ExistingLeadRow[] = []
+        for (let i = 0; i < digitsInBatch.length; i += CHUNK_SIZE) {
+          const chunk = digitsInBatch.slice(i, i + CHUNK_SIZE)
+          const orFilter = chunk.map(d => `phone.like.%${d}`).join(',')
+          if (!orFilter) continue
+          const { data, error: lookupError } = await supabase
+            .from('leads').select('id, phone, lead_name, pipeline_stage, status')
+            .eq('company_id', companyId)
+            .or(orFilter)
+          if (lookupError) {
+            pushErrors([`Duplicate check failed: ${lookupError.message}`])
+            setLoading(false); return
+          }
+          if (data) existingInDB.push(...(data as ExistingLeadRow[]))
+        }
 
-        const matchedDupes = (existingInDB || []).filter(e =>
+        const matchedDupes = existingInDB.filter(e =>
           phonesInBatch.some(p => isSamePhone(e.phone || '', p))
         )
 
@@ -434,27 +449,34 @@ export function AddLeadModal({ isOpen, onClose, onLeadsAdded, industry = 'genera
         if (blockingMatches.length > 0) {
           const dupPhones = new Set(blockingMatches.map(e => getPhoneDigits(e.phone)))
           setDbDuplicatePhones(dupPhones)
-          const dupList = blockingMatches.map(e => `${formatIndianPhone(e.phone)} (${e.lead_name})`).join(', ')
-          pushErrors([`⚠ Already exists in DB: ${dupList}`])
+          const dupList = blockingMatches.slice(0, 20).map(e => `${formatIndianPhone(e.phone)} (${e.lead_name})`).join(', ')
+          const suffix = blockingMatches.length > 20 ? ` and ${blockingMatches.length - 20} more` : ''
+          pushErrors([`⚠ Already exists in DB (${blockingMatches.length} total): ${dupList}${suffix}`])
           setLoading(false); return
         }
 
         // Reactivate any lost/not-interested matches — carry the fresh data onto
-        // the existing record and reset its pipeline stage to New.
+        // the existing record and reset its pipeline stage to New. Chunked to
+        // avoid hammering the DB with hundreds of parallel requests at once.
         if (reactivateMatches.length > 0) {
-          for (const match of reactivateMatches) {
-            const matchedLead = validLeads.find(l => isSamePhone(l.phone, match.phone))
-            if (!matchedLead) continue
-            await supabase.from('leads').update(toReactivateRow(matchedLead)).eq('id', match.id)
+          for (let i = 0; i < reactivateMatches.length; i += CHUNK_SIZE) {
+            const chunk = reactivateMatches.slice(i, i + CHUNK_SIZE)
+            await Promise.all(chunk.map(match => {
+              const matchedLead = validLeads.find(l => isSamePhone(l.phone, match.phone))
+              if (!matchedLead) return Promise.resolve()
+              return supabase.from('leads').update(toReactivateRow(matchedLead)).eq('id', match.id)
+            }))
           }
         }
 
-        // Insert only the leads that weren't just reactivated above.
+        // Insert only the leads that weren't just reactivated above — chunked so
+        // large uploads (hundreds of rows) don't risk a single oversized request.
         const reactivatedDigits = new Set(reactivateMatches.map(e => getPhoneDigits(e.phone)))
         const leadsToInsert = validLeads.filter(l => !reactivatedDigits.has(getPhoneDigits(l.phone)))
 
-        if (leadsToInsert.length > 0) {
-          const { error } = await supabase.from('leads').insert(leadsToInsert.map(l => toRow(l, companyId, industry)))
+        for (let i = 0; i < leadsToInsert.length; i += CHUNK_SIZE) {
+          const chunk = leadsToInsert.slice(i, i + CHUNK_SIZE)
+          const { error } = await supabase.from('leads').insert(chunk.map(l => toRow(l, companyId, industry)))
           if (error) {
             pushErrors([error.code === '23505' ? '⚠ One or more phone numbers already registered' : `Save failed: ${error.message}`])
             setLoading(false); return
