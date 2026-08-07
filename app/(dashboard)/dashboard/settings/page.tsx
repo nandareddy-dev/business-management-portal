@@ -1,5 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const GRADIENTS = [
@@ -74,6 +75,7 @@ interface User {
 }
 
 export default function UsersSettingsPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
@@ -119,6 +121,10 @@ export default function UsersSettingsPage() {
     load()
   }, [])
 
+  const goToUser = (id: string) => {
+    router.push(`/dashboard/settings/users/${id}`)
+  }
+
   const admins = users.filter(u => ['admin', 'tenant_admin', 'manager'].includes(u.role))
   const staff = users.filter(u => u.role === 'employee')
 
@@ -130,7 +136,8 @@ export default function UsersSettingsPage() {
     u.role?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const copyEmail = (email: string) => {
+  const copyEmail = (e: React.MouseEvent, email: string) => {
+    e.stopPropagation()
     navigator.clipboard?.writeText(email)
     setCopiedEmail(email)
     setTimeout(() => setCopiedEmail(null), 1500)
@@ -197,28 +204,36 @@ export default function UsersSettingsPage() {
             <p className="text-sm text-[#9A8F82] mt-1.5">All users in your company portal, at a glance.</p>
           </div>
 
-          {/* Role distribution bar */}
-          {users.length > 0 && (
-            <div className="bg-white border border-[#E8E2D8] rounded-2xl px-5 py-3.5 min-w-[260px]"
-              style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.03), 0 4px 14px rgba(28,23,18,0.05)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[9px] font-bold text-[#9A8F82] uppercase tracking-wide">Team Composition</p>
-                <p className="text-[9px] font-bold text-[#C4BAB0]">{users.length} total</p>
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push('/dashboard/settings/users/invite')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white flex-shrink-0"
+              style={{ background: '#1C1712', boxShadow: '0 4px 14px rgba(28,23,18,0.25)' }}>
+              ➕ Add Staff
+            </button>
+
+            {/* Role distribution bar */}
+            {users.length > 0 && (
+              <div className="bg-white border border-[#E8E2D8] rounded-2xl px-5 py-3.5 min-w-[260px]"
+                style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.03), 0 4px 14px rgba(28,23,18,0.05)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[9px] font-bold text-[#9A8F82] uppercase tracking-wide">Team Composition</p>
+                  <p className="text-[9px] font-bold text-[#C4BAB0]">{users.length} total</p>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden flex bg-[#F0EBE0]">
+                  <div className="bar-fill h-full" style={{ width: `${adminPct}%`, background: '#B8860B' }} />
+                  <div className="bar-fill h-full" style={{ width: `${staffPct}%`, background: '#2563EB' }} />
+                </div>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="flex items-center gap-1.5 text-[10px] text-[#7A6E60]">
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#B8860B' }} /> Admins {adminPct}%
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[10px] text-[#7A6E60]">
+                    <span className="w-2 h-2 rounded-full" style={{ background: '#2563EB' }} /> Staff {staffPct}%
+                  </span>
+                </div>
               </div>
-              <div className="h-2 rounded-full overflow-hidden flex bg-[#F0EBE0]">
-                <div className="bar-fill h-full" style={{ width: `${adminPct}%`, background: '#B8860B' }} />
-                <div className="bar-fill h-full" style={{ width: `${staffPct}%`, background: '#2563EB' }} />
-              </div>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="flex items-center gap-1.5 text-[10px] text-[#7A6E60]">
-                  <span className="w-2 h-2 rounded-full" style={{ background: '#B8860B' }} /> Admins {adminPct}%
-                </span>
-                <span className="flex items-center gap-1.5 text-[10px] text-[#7A6E60]">
-                  <span className="w-2 h-2 rounded-full" style={{ background: '#2563EB' }} /> Staff {staffPct}%
-                </span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ── Stats ── */}
@@ -286,7 +301,8 @@ export default function UsersSettingsPage() {
                   const perms: string[] = u.permissions || []
                   return (
                     <tr key={u.id}
-                      className="row-hover border-b border-[#F7F5F1] last:border-0 hover:bg-[#FDFAF8]"
+                      onClick={() => goToUser(u.id)}
+                      className="row-hover border-b border-[#F7F5F1] last:border-0 hover:bg-[#FDFAF8] cursor-pointer"
                       style={{ animation: `fadeSlideUp 0.4s cubic-bezier(0.16,1,0.3,1) both`, animationDelay: `${0.22 + i * 0.03}s` }}>
                       <td className="pl-5 pr-2 py-4">
                         <span className="text-[10px] font-bold text-[#C4BAB0]">{i + 1}</span>
@@ -306,7 +322,7 @@ export default function UsersSettingsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="email-copy text-xs text-[#7A6E60] truncate max-w-[200px]" onClick={() => copyEmail(u.email)}>
+                        <p className="email-copy text-xs text-[#7A6E60] truncate max-w-[200px]" onClick={(e) => copyEmail(e, u.email!)}>
                           {copiedEmail === u.email ? '✓ Copied!' : u.email}
                         </p>
                       </td>
@@ -362,7 +378,9 @@ export default function UsersSettingsPage() {
               const roleCfg = ROLE_CONFIG[u.role] ?? { bg: '#F5F0E8', color: '#7A6E60', label: u.role }
               const perms: string[] = u.permissions || []
               return (
-                <div key={u.id} className="row-hover px-4 py-4 hover:bg-[#FDFAF8]"
+                <div key={u.id}
+                  onClick={() => goToUser(u.id)}
+                  className="row-hover px-4 py-4 hover:bg-[#FDFAF8] cursor-pointer"
                   style={{ animation: `fadeSlideUp 0.4s cubic-bezier(0.16,1,0.3,1) both`, animationDelay: `${0.22 + i * 0.03}s` }}>
                   <div className="flex items-start gap-3">
                     <div className="avatar-ring w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black text-white flex-shrink-0"
@@ -377,7 +395,7 @@ export default function UsersSettingsPage() {
                           {roleCfg.label}
                         </span>
                       </div>
-                      <p className="email-copy text-xs text-[#9A8F82] mt-0.5 truncate" onClick={() => copyEmail(u.email)}>
+                      <p className="email-copy text-xs text-[#9A8F82] mt-0.5 truncate" onClick={(e) => copyEmail(e, u.email!)}>
                         {copiedEmail === u.email ? '✓ Copied!' : u.email}
                       </p>
                       {(u.designation || u.department) && (
@@ -416,7 +434,7 @@ export default function UsersSettingsPage() {
               <span className="font-bold text-[#1C1712]">{users.length}</span> total users
             </p>
             <p className="text-[10px] text-[#B8B0A0]">
-              Add more users via HR → Employees
+              Click a row to edit
             </p>
           </div>
         </div>
@@ -461,4 +479,3 @@ export default function UsersSettingsPage() {
     </main>
   )
 }
-
