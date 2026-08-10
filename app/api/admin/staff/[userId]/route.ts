@@ -19,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
 
     // Update profiles table (role, name)
     if (role !== undefined || fullName !== undefined) {
-      const profileUpdate: Record<string, any> = {}
+      const profileUpdate: Record<string, unknown> = {}
       if (role !== undefined) profileUpdate.role = role
       if (fullName !== undefined) profileUpdate.full_name = fullName
 
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     }
 
     // Update employees table (designation, department, permissions, active status)
-    const employeeUpdate: Record<string, any> = {}
+    const employeeUpdate: Record<string, unknown> = {}
     if (designation !== undefined) employeeUpdate.designation = designation
     if (department !== undefined) employeeUpdate.department = department
     if (permissions !== undefined) employeeUpdate.permissions = permissions
@@ -60,9 +60,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     }
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Staff update error:', err)
-    return NextResponse.json({ error: err.message || 'Something went wrong' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Something went wrong'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -83,8 +84,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ userI
     }
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Staff delete error:', err)
-    return NextResponse.json({ error: err.message || 'Something went wrong' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Something went wrong'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

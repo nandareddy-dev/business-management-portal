@@ -97,8 +97,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, userId, employeeCode: finalEmployeeCode })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Staff invite error:', err)
-    return NextResponse.json({ error: err.message || 'Something went wrong' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Something went wrong'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
