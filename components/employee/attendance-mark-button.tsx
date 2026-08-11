@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { MapPin } from 'lucide-react'
+import { MapPin, CheckCircle2, XCircle } from 'lucide-react'
 import { distanceInMeters } from '@/lib/geofence'
 
 interface Props {
@@ -82,7 +82,7 @@ export function AttendanceMarkButton({
         setCheckedIn(true)
         setCheckInTime(existing.check_in)
         setCheckInVerified(existing.within_geofence ?? null)
-        setMessage('✅ Already checked in!')
+        setMessage('Already checked in')
         setLoading(false)
         return
       }
@@ -114,14 +114,14 @@ export function AttendanceMarkButton({
 
             if (!withinGeofence) {
               setLoading(false)
-              setMessage(`⚠️ Office nunchi ${Math.round(distance)}m dooram unnaru (allowed: ${radius}m). Regularization request pettandi.`)
+              setMessage(`Office nunchi ${Math.round(distance)}m dooram unnaru (allowed: ${radius}m). Regularization request pettandi.`)
               setShowRegularize(true)
               return
             }
           }
         }
       } catch {
-        setMessage('⚠️ Location access ledu — check-in ayyindi kani unverified.')
+        setMessage('Location access ledu — check-in ayyindi kani unverified.')
       }
 
       const { data, error } = await supabase
@@ -142,9 +142,9 @@ export function AttendanceMarkButton({
       setCheckedIn(true)
       setCheckInTime(now)
       setCheckInVerified(withinGeofence)
-      if (!message) setMessage('✅ Checked in successfully!')
+      if (!message) setMessage('Checked in successfully')
     } catch (e: unknown) {
-      setMessage('❌ ' + (e instanceof Error ? e.message : 'Failed to check in'))
+      setMessage(e instanceof Error ? e.message : 'Failed to check in')
     }
     setLoading(false)
   }
@@ -178,9 +178,9 @@ export function AttendanceMarkButton({
       if (error) throw error
       setCheckedOut(true)
       setCheckOutTime(now)
-      setMessage('✅ Checked out successfully!')
+      setMessage('Checked out successfully')
     } catch (e: unknown) {
-      setMessage('❌ ' + (e instanceof Error ? e.message : 'Failed to check out'))
+      setMessage(e instanceof Error ? e.message : 'Failed to check out')
     }
     setLoading(false)
   }
@@ -194,33 +194,33 @@ export function AttendanceMarkButton({
       reason: regularizeReason,
     })
     if (!error) {
-      setMessage('✅ Regularization request submitted — admin approval kosam wait cheyandi.')
+      setMessage('Regularization request submitted — admin approval kosam wait cheyandi.')
       setShowRegularize(false)
       setRegularizeReason('')
     } else {
-      setMessage('❌ ' + error.message)
+      setMessage(error.message)
     }
   }
 
   if (checkedIn && checkedOut) {
     return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-            <span className="text-xs font-medium text-[#7A6E60]">Check In: {checkInTime ? fmtIST(checkInTime) : '—'}</span>
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs text-gray-500">Check in: {checkInTime ? fmtIST(checkInTime) : '—'}</span>
           </div>
-          <div className="w-px h-4 bg-[#E2D9C8]" />
+          <div className="w-px h-4 bg-gray-200" />
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-            <span className="text-xs font-medium text-[#7A6E60]">Check Out: {checkOutTime ? fmtIST(checkOutTime) : '—'}</span>
+            <div className="w-2 h-2 rounded-full bg-rose-500" />
+            <span className="text-xs text-gray-500">Check out: {checkOutTime ? fmtIST(checkOutTime) : '—'}</span>
           </div>
         </div>
-        <div className="flex items-center justify-center gap-2 py-3 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-          <span className="text-base">✅</span>
-          <p className="text-sm font-bold text-emerald-700">Attendance complete for today!</p>
+        <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-50">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <p className="text-sm font-medium text-emerald-700">Attendance complete for today</p>
           {checkInVerified === true && (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
               <MapPin size={10} /> Verified
             </span>
           )}
@@ -233,36 +233,35 @@ export function AttendanceMarkButton({
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${checkedIn ? 'bg-emerald-400' : 'bg-[#E2D9C8]'}`} />
-          <span className="text-xs font-medium text-[#7A6E60]">Check In: {checkedIn && checkInTime ? fmtIST(checkInTime) : '—'}</span>
+          <div className={`w-2 h-2 rounded-full ${checkedIn ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+          <span className="text-xs text-gray-500">Check in: {checkedIn && checkInTime ? fmtIST(checkInTime) : '—'}</span>
         </div>
-        <div className="w-px h-4 bg-[#E2D9C8]" />
+        <div className="w-px h-4 bg-gray-200" />
         <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${checkedOut ? 'bg-red-400' : 'bg-[#E2D9C8]'}`} />
-          <span className="text-xs font-medium text-[#7A6E60]">Check Out: {checkedOut && checkOutTime ? fmtIST(checkOutTime) : '—'}</span>
+          <div className={`w-2 h-2 rounded-full ${checkedOut ? 'bg-rose-500' : 'bg-gray-200'}`} />
+          <span className="text-xs text-gray-500">Check out: {checkedOut && checkOutTime ? fmtIST(checkOutTime) : '—'}</span>
         </div>
       </div>
 
       {!checkedIn && (
         <button onClick={handleCheckIn} disabled={loading || !currentTime}
-          className="w-full py-3.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #16A34A, #047857)', boxShadow: '0 4px 14px rgba(22,163,74,0.35)' }}>
+          className="w-full py-3.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
           {loading
             ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Marking...</>
-            : <>🟢 Check In — {currentTime}</>}
+            : <>Check in — {currentTime}</>}
         </button>
       )}
 
       {checkedIn && (
-        <div className="py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-          <p className="text-xs font-bold text-emerald-700">✅ Checked in at {checkInTime ? fmtIST(checkInTime) : '—'}</p>
+        <div className="py-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 bg-emerald-50">
+          <p className="text-xs font-medium text-emerald-700">Checked in at {checkInTime ? fmtIST(checkInTime) : '—'}</p>
           {checkInVerified === true && (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
               <MapPin size={10} /> Verified
             </span>
           )}
           {checkInVerified === false && (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
               <MapPin size={10} /> Unverified
             </span>
           )}
@@ -271,24 +270,30 @@ export function AttendanceMarkButton({
 
       {checkedIn && !checkedOut && (
         <button onClick={handleCheckOut} disabled={loading}
-          className="w-full py-3.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #DC2626, #B91C1C)', boxShadow: '0 4px 14px rgba(220,38,38,0.35)' }}>
+          className="w-full py-3.5 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
           {loading
             ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Marking...</>
-            : <>🔴 Check Out — {currentTime}</>}
+            : <>Check out — {currentTime}</>}
         </button>
       )}
 
-      {message && <p className="text-xs text-center font-medium text-[#7A6E60]">{message}</p>}
+      {message && (
+        <p className="text-xs text-center text-gray-500 flex items-center justify-center gap-1">
+          {message.toLowerCase().includes('fail') || message.toLowerCase().includes('error')
+            ? <XCircle className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+            : null}
+          {message}
+        </p>
+      )}
 
       {showRegularize && (
-        <div className="mt-3 p-3 border border-amber-300 rounded-xl bg-amber-50/50 space-y-2">
-          <p className="text-xs font-semibold text-amber-800">Regularization Request</p>
+        <div className="mt-1 p-3 rounded-xl bg-amber-50 space-y-2">
+          <p className="text-xs font-medium text-amber-800">Regularization request</p>
           <textarea value={regularizeReason} onChange={e => setRegularizeReason(e.target.value)}
             placeholder="Reason (e.g. client site visit)" rows={2}
-            className="w-full border border-amber-300 rounded-lg p-2 text-xs" />
+            className="w-full border border-amber-200 rounded-lg p-2 text-xs bg-white" />
           <div className="flex gap-2">
-            <button onClick={() => setShowRegularize(false)} className="flex-1 py-2 text-xs border border-amber-300 rounded-lg">Cancel</button>
+            <button onClick={() => setShowRegularize(false)} className="flex-1 py-2 text-xs border border-amber-200 rounded-lg text-amber-700">Cancel</button>
             <button onClick={submitRegularization} disabled={!regularizeReason.trim()}
               className="flex-1 py-2 text-xs bg-amber-600 text-white rounded-lg disabled:opacity-50">Submit</button>
           </div>

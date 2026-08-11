@@ -33,6 +33,17 @@ export function PunchCard({ employeeId, fullName, designation, photoUrl, checkIn
     setTimeout(() => setSpinning(false), 600)
   }
 
+  // Status: red = not checked in / checked out, yellow = on break, green = actively working
+  const isCheckedIn = !!checkIn
+  const isCheckedOut = !!checkOut
+  const onBreak = !!activeBreak
+
+  const status = !isCheckedIn || isCheckedOut
+    ? { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', label: isCheckedOut ? 'Checked out' : 'Not checked in' }
+    : onBreak
+      ? { color: '#eab308', bg: 'rgba(234,179,8,0.12)', border: 'rgba(234,179,8,0.35)', label: 'On break' }
+      : { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.35)', label: 'Working' }
+
   return (
     <div className="bg-[#1C1712] px-6 py-5 lg:px-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.05]" style={{
@@ -54,7 +65,18 @@ export function PunchCard({ employeeId, fullName, designation, photoUrl, checkIn
               <p className="text-[11px] text-white/40 tracking-wide" style={mono}>{designation ?? 'Employee'}</p>
             </div>
           </div>
-          <BreaksWidget employeeId={employeeId} activeBreak={activeBreak} />
+
+          <div className="flex items-center gap-2">
+            <span
+              title={status.label}
+              className="text-[10px] font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5"
+              style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color, boxShadow: `0 0 4px ${status.color}` }} />
+              {status.label}
+            </span>
+            <BreaksWidget employeeId={employeeId} activeBreak={activeBreak} />
+          </div>
         </div>
 
         <div className="bg-[#FAF7F2] px-4 py-3 flex items-center justify-between relative">

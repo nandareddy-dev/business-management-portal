@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, FileText, Clock, User, LayoutDashboard, ArrowUpRight, LogOut, MapPin } from 'lucide-react'
+import { LayoutDashboard, ArrowUpRight, LogOut, MapPin, CheckCircle2, Clock3 } from 'lucide-react'
 import { AttendanceMarkButton } from '@/components/employee/attendance-mark-button'
 import { PunchCard } from '@/components/employee/punch-card'
 import { HomeTabs } from '@/components/employee/home-tabs'
@@ -67,12 +67,12 @@ export default async function EmployeePortalPage() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
     if (profile?.role === 'employee') {
       return (
-        <div className="min-h-screen bg-[#F7F5F1] flex items-center justify-center px-4">
-          <div className="bg-white border border-[#E2D9C8] rounded-2xl p-8 max-w-sm w-full text-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
             <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-lg font-bold text-[#1C1712] mb-2">Employee Profile Not Found</h2>
-            <p className="text-sm text-[#7A6E60] mb-4">Your account exists but employee profile is missing. Contact your admin.</p>
-            <p className="text-xs text-[#9A8F82]">Email: {user.email}</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Employee Profile Not Found</h2>
+            <p className="text-sm text-gray-500 mb-4">Your account exists but employee profile is missing. Contact your admin.</p>
+            <p className="text-xs text-gray-400">Email: {user.email}</p>
           </div>
         </div>
       )
@@ -114,35 +114,19 @@ export default async function EmployeePortalPage() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
   }
 
-  const ringR = 22
-  const ringC = 2 * Math.PI * ringR
-
+  // Colorful leave-type tiles instead of rings
   const leaves = leaveBalance ? [
-    { type: 'CL', label: 'Casual', total: leaveBalance.cl_total, used: leaveBalance.cl_used, stroke: '#B8860B' },
-    { type: 'SL', label: 'Sick',   total: leaveBalance.sl_total, used: leaveBalance.sl_used, stroke: '#8B6914' },
-    { type: 'EL', label: 'Earned', total: leaveBalance.el_total, used: leaveBalance.el_used, stroke: '#6B5410' },
+    { type: 'CL', label: 'Casual', total: leaveBalance.cl_total, used: leaveBalance.cl_used, bg: 'bg-purple-50', text: 'text-purple-700', sub: 'text-purple-500' },
+    { type: 'SL', label: 'Sick',   total: leaveBalance.sl_total, used: leaveBalance.sl_used, bg: 'bg-blue-50',   text: 'text-blue-700',   sub: 'text-blue-500' },
+    { type: 'EL', label: 'Earned', total: leaveBalance.el_total, used: leaveBalance.el_used, bg: 'bg-emerald-50', text: 'text-emerald-700', sub: 'text-emerald-500' },
   ] : []
 
-  const quickActions = [
-    { label: 'My attendance', sub: 'View history',     icon: Clock,     href: '/employee/attendance' },
-    { label: 'Apply leave',   sub: 'Request time off',  icon: Calendar,  href: '/employee/leave' },
-    { label: 'Work report',   sub: 'Submit today',      icon: FileText,  href: '/employee/reports' },
-    { label: 'My profile',    sub: 'View details',      icon: User,      href: '/employee/profile' },
-  ]
-
-  const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
-
   return (
-    <div className="min-h-screen bg-[#EFE9DD] overflow-y-auto">
-      <div className="max-w-6xl mx-auto w-full px-3 py-3 lg:px-6 lg:py-4">
+    <div className="min-h-screen bg-gray-50 overflow-y-auto">
+      <div className="max-w-2xl mx-auto w-full px-4 py-4">
 
-        <div className="relative border border-[#B8860B]/35">
-          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
-
-          {/* ── PUNCH CARD (photo, breaks, punch in/out/working hrs) ── */}
+        {/* ── PUNCH CARD (photo, breaks, punch in/out/working hrs) ── */}
+        <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100">
           <PunchCard
             employeeId={employee.id}
             fullName={employee.full_name}
@@ -154,151 +138,108 @@ export default async function EmployeePortalPage() {
             activeBreak={activeBreak}
           />
 
-          {/* ── TABS: Communication / Offers / Life at Cogent ── */}
+          {/* ── TABS: Communication / Offers / Life at GK ── */}
           <HomeTabs />
+        </div>
 
-          <div className="lg:grid lg:grid-cols-[1fr_300px]">
-            <div className="lg:border-r lg:border-[#B8860B]/25">
+        <div className="mt-4 space-y-4">
 
-              {/* ── MARK ATTENDANCE (actual check-in mechanism) ── */}
-              <div className="bg-[#FAF7F2] px-6 py-4 lg:px-8 lg:py-4 border-t border-[#B8860B]/25">
-                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>
-                  §1 — Mark Attendance
-                </p>
-                {(checkInAddress || checkOutAddress) && (
-                  <div className="flex flex-wrap gap-x-6 gap-y-1 mb-3 lg:max-w-md">
-                    {checkInAddress && (
-                      <p className="text-[11px] text-[#9A8F82] flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-emerald-600" /> In: {checkInAddress}
-                      </p>
-                    )}
-                    {checkOutAddress && (
-                      <p className="text-[11px] text-[#9A8F82] flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-rose-500" /> Out: {checkOutAddress}
-                      </p>
-                    )}
-                  </div>
+          {/* ── MARK ATTENDANCE ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <p className="text-sm font-medium text-gray-500 mb-3">Attendance</p>
+            {(checkInAddress || checkOutAddress) && (
+              <div className="flex flex-wrap gap-x-6 gap-y-1 mb-3">
+                {checkInAddress && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-emerald-600" /> In: {checkInAddress}
+                  </p>
                 )}
-                <div className="lg:max-w-md">
-                  <AttendanceMarkButton
-                    employeeId={employee.id}
-                    isCheckedIn={isCheckedIn}
-                    isCheckedOut={isCheckedOut}
-                    attendanceId={todayAttendance?.id ?? null}
-                    checkInTimeISO={todayAttendance?.check_in ?? null}
-                    checkOutTimeISO={todayAttendance?.check_out ?? null}
-                  />
-                </div>
+                {checkOutAddress && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-rose-500" /> Out: {checkOutAddress}
+                  </p>
+                )}
               </div>
+            )}
+            <AttendanceMarkButton
+              employeeId={employee.id}
+              isCheckedIn={isCheckedIn}
+              isCheckedOut={isCheckedOut}
+              attendanceId={todayAttendance?.id ?? null}
+              checkInTimeISO={todayAttendance?.check_in ?? null}
+              checkOutTimeISO={todayAttendance?.check_out ?? null}
+            />
+          </div>
 
-              {/* ── TODAY STATUS ── */}
-              <div className="bg-white px-6 py-4 lg:px-8 lg:py-4 border-t border-[#B8860B]/25">
-                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>
-                  §2 — {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </p>
-                <div className="grid grid-cols-2 lg:max-w-md">
-                  <div className="pr-5 border-r border-[#E2D9C8]">
-                    <p className="text-[10px] tracking-[1.5px] text-[#9A8F82] uppercase mb-1">Attendance</p>
-                    <p className={`text-base capitalize ${todayAttendance ? 'text-emerald-700' : 'text-[#9A8F82]'}`} style={{ fontFamily: 'Georgia, serif' }}>
-                      {todayAttendance ? todayAttendance.status : 'Not marked'}
-                    </p>
-                  </div>
-                  <div className="pl-5">
-                    <p className="text-[10px] tracking-[1.5px] text-[#9A8F82] uppercase mb-1">Work Report</p>
-                    <p className={`text-base ${todayReport ? 'text-blue-700' : 'text-[#9A8F82]'}`} style={{ fontFamily: 'Georgia, serif' }}>
-                      {todayReport ? 'Submitted' : 'Pending'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── LEAVE LEDGER ── */}
-              {leaveBalance && (
-                <div className="bg-[#FAF7F2] px-6 py-4 lg:px-8 lg:py-4 border-t border-[#B8860B]/25">
-                  <div className="flex items-baseline justify-between mb-3">
-                    <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase" style={mono}>
-                      §3 — Leave Ledger — {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-                    </p>
-                    {((pendingLeaves?.length) ?? 0) > 0 && (
-                      <p className="text-[10px] text-amber-700 font-medium">{pendingLeaves?.length} pending</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 lg:max-w-md">
-                    {leaves.map((l, i) => {
-                      const remaining = l.total - l.used
-                      const pctRaw = l.total > 0 ? remaining / l.total : 0
-                      const pctClamped = Math.max(0, Math.min(1, pctRaw))
-                      const offset = ringC * (1 - pctClamped)
-                      const isNegative = remaining < 0
-                      return (
-                        <div key={l.type} className={`text-center ${i > 0 ? 'border-l border-[#E2D9C8]' : ''}`}>
-                          <div className="relative w-11 h-11 mx-auto mb-1">
-                            <svg className="w-11 h-11 -rotate-90" viewBox="0 0 52 52">
-                              <circle cx="26" cy="26" r={ringR} fill="none" stroke="#E2D9C8" strokeWidth="2.5" />
-                              <circle cx="26" cy="26" r={ringR} fill="none" stroke={isNegative ? '#DC2626' : l.stroke} strokeWidth="2.5"
-                                strokeDasharray={ringC} strokeDashoffset={isNegative ? 0 : offset} strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className={`text-sm font-medium ${isNegative ? 'text-rose-600' : 'text-[#1C1712]'}`} style={{ fontFamily: 'Georgia, serif' }}>{remaining}</span>
-                            </div>
-                          </div>
-                          <p className="text-[9px] tracking-[1px] text-[#8B6914] font-medium uppercase">{l.type}</p>
-                          <p className={`text-[9px] ${isNegative ? 'text-rose-600 font-medium' : 'text-[#9A8F82]'}`}>{l.used}/{l.total} used</p>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+          {/* ── TODAY STATUS (colorful pair) ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`rounded-2xl p-4 ${todayAttendance ? 'bg-emerald-50' : 'bg-gray-100'}`}>
+              <p className={`text-xs mb-1 ${todayAttendance ? 'text-emerald-600' : 'text-gray-400'}`}>
+                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </p>
+              <p className={`text-sm font-medium capitalize flex items-center gap-1.5 ${todayAttendance ? 'text-emerald-700' : 'text-gray-500'}`}>
+                <CheckCircle2 className="w-4 h-4" />
+                {todayAttendance ? todayAttendance.status : 'Not marked'}
+              </p>
             </div>
+            <div className={`rounded-2xl p-4 ${todayReport ? 'bg-blue-50' : 'bg-amber-50'}`}>
+              <p className={`text-xs mb-1 ${todayReport ? 'text-blue-600' : 'text-amber-600'}`}>Work report</p>
+              <p className={`text-sm font-medium flex items-center gap-1.5 ${todayReport ? 'text-blue-700' : 'text-amber-700'}`}>
+                <Clock3 className="w-4 h-4" />
+                {todayReport ? 'Submitted' : 'Pending'}
+              </p>
+            </div>
+          </div>
 
-            {/* ══ SIDE COLUMN ══ */}
-            <div className="flex flex-col">
-              <div className="bg-white border-t border-[#B8860B]/25 flex-1">
-                <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase px-6 lg:px-5 pt-4 pb-1.5" style={mono}>
-                  §4 — Quick Actions
+          {/* ── LEAVE LEDGER (colorful tiles) ── */}
+          {leaveBalance && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className="flex items-baseline justify-between mb-3">
+                <p className="text-sm font-medium text-gray-500">
+                  Leave ledger — {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                 </p>
-                {quickActions.map((a, i) => {
-                  const Icon = a.icon
+                {((pendingLeaves?.length) ?? 0) > 0 && (
+                  <p className="text-xs text-amber-600 font-medium">{pendingLeaves?.length} pending</p>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {leaves.map((l) => {
+                  const remaining = l.total - l.used
+                  const isNegative = remaining < 0
                   return (
-                    <Link key={a.href} href={a.href}
-                      className={`group flex items-center gap-3 px-6 lg:px-5 py-2.5 hover:bg-[#FAF7F2] transition-colors ${i > 0 ? 'border-t border-[#F0EAE0]' : ''}`}>
-                      <div className="w-7 h-7 rounded-full border border-[#B8860B]/40 flex items-center justify-center flex-shrink-0 group-hover:border-[#B8860B] group-hover:bg-[#B8860B]/5 transition-colors">
-                        <Icon className="w-3.5 h-3.5 text-[#8B6914]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-[#1C1712] truncate" style={{ fontFamily: 'Georgia, serif' }}>{a.label}</p>
-                        <p className="text-[10px] text-[#9A8F82] truncate">{a.sub}</p>
-                      </div>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-[#B8860B]/40 group-hover:text-[#B8860B] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all flex-shrink-0" />
-                    </Link>
+                    <div key={l.type} className={`rounded-xl p-3 text-center ${isNegative ? 'bg-rose-50' : l.bg}`}>
+                      <p className={`text-lg font-semibold ${isNegative ? 'text-rose-700' : l.text}`}>{remaining}</p>
+                      <p className={`text-xs font-medium mt-0.5 ${isNegative ? 'text-rose-600' : l.text}`}>{l.type}</p>
+                      <p className={`text-[11px] ${isNegative ? 'text-rose-500' : l.sub}`}>{l.used}/{l.total} used</p>
+                    </div>
                   )
                 })}
               </div>
-
-              {hasCRMAccess && (
-                <Link href="/dashboard"
-                  className="flex items-center gap-3 px-6 lg:px-5 py-3 bg-[#1C1712] border-t border-[#B8860B]/25 hover:bg-[#252019] transition-colors">
-                  <div className="w-7 h-7 rounded-full border border-[#B8860B]/40 flex items-center justify-center flex-shrink-0">
-                    <LayoutDashboard className="w-3.5 h-3.5 text-[#B8860B]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-white" style={{ fontFamily: 'Georgia, serif' }}>CRM Portal</p>
-                    <p className="text-[10px] text-white/35 truncate">Go to business dashboard</p>
-                  </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-[#B8860B]/60 flex-shrink-0" />
-                </Link>
-              )}
-
-              <form action="/api/auth/signout" method="POST" className="border-t border-[#B8860B]/25 flex-shrink-0">
-                <button type="submit"
-                  className="w-full py-2.5 text-[10px] tracking-[2px] uppercase text-[#9A8F82] hover:text-[#1C1712] hover:bg-[#FAF7F2] transition-colors flex items-center justify-center gap-2"
-                  style={mono}>
-                  <LogOut className="w-3.5 h-3.5" /> Sign out
-                </button>
-              </form>
             </div>
+          )}
+
+          {/* ── CRM PORTAL + SIGN OUT ── */}
+          <div className="space-y-2">
+            {hasCRMAccess && (
+              <Link href="/dashboard"
+                className="flex items-center gap-3 px-4 py-3.5 bg-blue-600 hover:bg-blue-700 rounded-2xl transition-colors">
+                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <LayoutDashboard className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">CRM Portal</p>
+                  <p className="text-xs text-blue-100 truncate">Go to business dashboard</p>
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-blue-100 flex-shrink-0" />
+              </Link>
+            )}
+
+            <form action="/api/auth/signout" method="POST">
+              <button type="submit"
+                className="w-full py-3 rounded-2xl border border-gray-200 text-sm text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center gap-2">
+                <LogOut className="w-4 h-4" /> Sign out
+              </button>
+            </form>
           </div>
         </div>
       </div>

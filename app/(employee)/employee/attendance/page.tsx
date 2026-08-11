@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ChevronDown, ArrowUpRight, ArrowDownLeft, CalendarDays } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ArrowUpRight, ArrowDownLeft, CalendarDays, MapPin } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 
 export const dynamic = 'force-dynamic'
@@ -20,18 +20,30 @@ interface AttendanceRecord {
 }
 interface LeaveApp { from_date: string; to_date: string; leave_type: string; status: string }
 
-const ROSTER_START = '10:00'
-const ROSTER_END   = '19:00'
+const ROSTER_START = '09:30'
+const ROSTER_END   = '18:30'
 
 const STAT_TABS = [
-  { key: 'present',      label: 'Login',    color: '#1C1712' },
-  { key: 'half_day',     label: 'Half',     color: '#C2410C' },
-  { key: 'leave',        label: 'Leave',    color: '#B45309' },
-  { key: 'lwp',          label: 'LWP',      color: '#9333EA' },
-  { key: 'absent',       label: 'Absent',   color: '#DC2626' },
-  { key: 'short_leave',  label: 'S.Leave',  color: '#DB2777' },
-  { key: 'short_login',  label: 'S.Login',  color: '#2563EB' },
+  { key: 'present',      label: 'Login',    bg: 'bg-gray-900',    text: 'text-white' },
+  { key: 'half_day',     label: 'Half',     bg: 'bg-amber-500',   text: 'text-white' },
+  { key: 'leave',        label: 'Leave',    bg: 'bg-purple-500',  text: 'text-white' },
+  { key: 'lwp',          label: 'LWP',      bg: 'bg-fuchsia-600', text: 'text-white' },
+  { key: 'absent',       label: 'Absent',   bg: 'bg-rose-500',    text: 'text-white' },
+  { key: 'short_leave',  label: 'S.Leave',  bg: 'bg-pink-500',    text: 'text-white' },
+  { key: 'short_login',  label: 'S.Login',  bg: 'bg-blue-500',    text: 'text-white' },
 ]
+
+// Pill colors keyed by status, used in the day-wise list
+const STATUS_PILL: Record<string, string> = {
+  present:     'bg-emerald-50 text-emerald-700',
+  half_day:    'bg-amber-50 text-amber-700',
+  leave:       'bg-purple-50 text-purple-700',
+  lwp:         'bg-fuchsia-50 text-fuchsia-700',
+  absent:      'bg-rose-50 text-rose-700',
+  short_leave: 'bg-pink-50 text-pink-700',
+  short_login: 'bg-blue-50 text-blue-700',
+  holiday:     'bg-gray-100 text-gray-500',
+}
 
 export default function EmployeeAttendancePage() {
   const router = useRouter()
@@ -136,8 +148,6 @@ export default function EmployeeAttendancePage() {
   }
 
   const todayRec = dateMap[todayStr]
-  const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
-  const serif = { fontFamily: 'Georgia, serif' }
 
   const allDays = Array.from({ length: daysInMonth }, (_, i) => daysInMonth - i)
     .filter(d => new Date(viewYear, viewMonth, d) <= now)
@@ -148,134 +158,122 @@ export default function EmployeeAttendancePage() {
       return {
         day: d, dateStr: ds,
         dayName: new Date(viewYear, viewMonth, d).toLocaleDateString('en-IN', { weekday: 'long' }),
-        status: weekend ? 'holiday' : (info?.status ?? 'absent'),
+        // Sunday defaults to holiday, but a real punch-in that day overrides it to the actual status.
+        status: info?.status ?? (weekend ? 'holiday' : 'absent'),
         checkIn: info?.checkIn, checkOut: info?.checkOut,
         checkInAddr: info?.checkInAddr, checkOutAddr: info?.checkOutAddr,
       }
     })
 
-  function statusColor(status: string) {
-    const found = STAT_TABS.find(t => t.key === status)
-    return found?.color ?? '#9A8F82'
-  }
-
   if (loading) return (
-    <div className="h-screen bg-[#EFE9DD] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-[#B8860B] border-t-transparent rounded-full animate-spin" />
+    <div className="h-screen bg-gray-50 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#EFE9DD]">
-      <div className="max-w-3xl mx-auto py-4 px-3 lg:py-6 lg:px-6">
-        <div className="relative border border-[#B8860B]/35">
-          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto py-4 px-4">
 
-          {/* Hero */}
-          <div className="bg-[#1C1712] px-6 py-4 lg:px-8 flex items-center justify-between relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.05]" style={{
-              backgroundImage: 'linear-gradient(#B8860B 1px, transparent 1px), linear-gradient(90deg, #B8860B 1px, transparent 1px)',
-              backgroundSize: '28px 28px'
-            }} />
-            <div className="relative">
-              <Link href="/employee" className="text-white/40 text-[10px] tracking-[1.5px] uppercase flex items-center gap-1.5 mb-2 w-fit hover:text-[#D4A537] transition-colors" style={mono}>
-                <ArrowLeft className="w-3 h-3" /> Back
-              </Link>
-              <h1 className="text-[20px] text-white italic" style={{ fontFamily: 'Georgia, serif', fontWeight: 500 }}>My Attendance</h1>
-              <p className="text-[10px] text-white/40 mt-0.5 tracking-wide" style={mono}>ROSTER {ROSTER_START} – {ROSTER_END}</p>
+        {/* Header */}
+        <div className="mb-4">
+          <Link href="/employee" className="text-gray-400 text-xs flex items-center gap-1.5 mb-3 w-fit hover:text-gray-600 transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
+          </Link>
+          <h1 className="text-xl font-medium text-gray-900">My attendance</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Roster {ROSTER_START} – {ROSTER_END}</p>
+        </div>
+
+        {/* Month nav */}
+        <div className="flex items-center justify-center gap-6 mb-4">
+          <button onClick={goPrevMonth} className="text-gray-400 hover:text-gray-700 text-lg leading-none">‹</button>
+          <p className="text-sm font-medium text-gray-900 w-32 text-center">{monthName} {viewYear}</p>
+          <button onClick={goNextMonth} disabled={isCurrentMonth} className="text-gray-400 hover:text-gray-700 disabled:opacity-25 text-lg leading-none">›</button>
+        </div>
+
+        {/* Horizontal status chips — scrollable */}
+        <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-1 mb-4" style={{ scrollbarWidth: 'none' }}>
+          {STAT_TABS.map(t => (
+            <div key={t.key}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${t.bg} ${t.text}`}>
+              {t.label} ({statCounts[t.key]})
+            </div>
+          ))}
+        </div>
+
+        {/* Today card */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
+            <span className="text-xs font-medium text-blue-600">Today</span>
+          </div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-gray-900">
+              {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </p>
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1 text-sm text-emerald-600">
+                <ArrowUpRight className="w-3.5 h-3.5" /> {fmtTime(todayRec?.checkIn)}
+              </span>
+              <span className="flex items-center gap-1 text-sm text-rose-500">
+                <ArrowDownLeft className="w-3.5 h-3.5" /> {fmtTime(todayRec?.checkOut)}
+              </span>
             </div>
           </div>
-
-          {/* Month nav */}
-          <div className="bg-[#FAF7F2] border-t border-[#B8860B]/25 px-6 py-2.5 lg:px-8 flex items-center justify-center gap-6">
-            <button onClick={goPrevMonth} className="text-[#1C1712] hover:text-[#B8860B]">‹</button>
-            <p className="text-[14px] text-[#1C1712] w-28 text-center" style={serif}>{monthName} {viewYear}</p>
-            <button onClick={goNextMonth} disabled={isCurrentMonth} className="text-[#1C1712] hover:text-[#B8860B] disabled:opacity-25">›</button>
+          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <p className="text-xs text-gray-400">Roster<br /><span className="text-gray-700 font-medium">{ROSTER_START} - {ROSTER_END}</span></p>
+            <p className="text-xs text-gray-400 text-right">Working hrs<br /><span className="text-gray-700 font-medium">{calcWorkingHrs(todayRec?.checkIn, todayRec?.checkOut)}</span></p>
           </div>
+        </div>
 
-          {/* Horizontal status pills — scrollable, matches Cogent style */}
-          <div ref={scrollRef} className="flex gap-2 overflow-x-auto px-6 py-3 lg:px-8 bg-white border-t border-[#B8860B]/25 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
-            {STAT_TABS.map(t => (
-              <div key={t.key}
-                className="flex-shrink-0 px-3.5 py-1.5 text-[11px] font-medium text-white whitespace-nowrap"
-                style={{ background: t.color }}>
-                {t.label} ({statCounts[t.key]})
-              </div>
-            ))}
-          </div>
-
-          {/* Today card — punch in/out + roster/working hrs */}
-          <div className="bg-[#FAF7F2] border-t border-[#B8860B]/25 px-6 py-4 lg:px-8">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#1C1712] text-[#D4A537] text-[10px] tracking-[1px] uppercase w-fit" style={mono}>
-                <CalendarDays className="w-3 h-3" /> Today
-              </div>
-            </div>
-            <div className="bg-white border border-[#E2D9C8] px-4 py-3 flex items-center justify-between">
-              <p className="text-[11px] text-[#9A8F82]">
-                {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </p>
-              <div className="flex items-center gap-4">
-                <span className="flex items-center gap-1 text-[12px] text-[#1C1712]" style={mono}>
-                  <ArrowUpRight className="w-3 h-3 text-emerald-600" /> {fmtTime(todayRec?.checkIn)}
-                </span>
-                <span className="flex items-center gap-1 text-[12px] text-[#1C1712]" style={mono}>
-                  <ArrowDownLeft className="w-3 h-3 text-rose-500" /> {fmtTime(todayRec?.checkOut)}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-2 px-1">
-              <p className="text-[10px] text-[#9A8F82]">Roster<br /><span className="text-[#1C1712]" style={serif}>{ROSTER_START} - {ROSTER_END}</span></p>
-              <p className="text-[10px] text-[#9A8F82] text-right">Working Hrs<br /><span className="text-[#1C1712]" style={serif}>{calcWorkingHrs(todayRec?.checkIn, todayRec?.checkOut)}</span></p>
-            </div>
-          </div>
-
-          {/* Day-wise list — Friday-10 style */}
-          <div className="bg-white border-t border-[#B8860B]/25">
-            {allDays.map((d, idx) => {
-              const isOpen = expandedDay === d.dateStr
-              const color = statusColor(d.status)
-              return (
-                <div key={d.dateStr} className={idx > 0 ? 'border-t border-[#F0EAE0]' : ''}>
-                  <button onClick={() => setExpandedDay(isOpen ? null : d.dateStr)}
-                    className="w-full px-6 lg:px-8 py-3.5 flex items-center justify-between hover:bg-[#FAF7F2] transition-colors">
-                    <p className="text-[14px] text-[#1C1712]" style={serif}>{d.dayName}-{d.day}</p>
-                    <div className="flex items-center gap-2">
-                      {d.status !== 'future' && (
-                        <span className="text-[10px] px-2 py-0.5 text-white uppercase tracking-[0.5px]" style={{ background: color, ...mono }}>
-                          {d.status.replace('_', ' ')}
-                        </span>
-                      )}
-                      <ChevronDown className={`w-3.5 h-3.5 text-[#9A8F82] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                    </div>
-                  </button>
-                  {isOpen && (
-                    <div className="px-6 lg:px-8 pb-4 bg-[#FAF7F2]">
-                      <div className="grid grid-cols-2 gap-4 pt-1">
-                        <div>
-                          <p className="text-[9px] tracking-[1px] text-[#9A8F82] uppercase" style={mono}>Punch In / Out</p>
-                          <p className="text-[13px] text-[#1C1712] mt-1" style={serif}>{fmtTime(d.checkIn)} – {fmtTime(d.checkOut)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] tracking-[1px] text-[#9A8F82] uppercase" style={mono}>Working Hrs</p>
-                          <p className="text-[13px] text-[#1C1712] mt-1" style={serif}>{calcWorkingHrs(d.checkIn, d.checkOut)}</p>
-                        </div>
+        {/* Day-wise list */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {allDays.map((d, idx) => {
+            const isOpen = expandedDay === d.dateStr
+            const pillClass = STATUS_PILL[d.status] ?? 'bg-gray-100 text-gray-500'
+            return (
+              <div key={d.dateStr} className={idx > 0 ? 'border-t border-gray-100' : ''}>
+                <button onClick={() => setExpandedDay(isOpen ? null : d.dateStr)}
+                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <p className="text-sm font-medium text-gray-900">{d.dayName}-{d.day}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${pillClass}`}>
+                      {d.status.replace('_', ' ')}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="px-4 pb-4 bg-gray-50">
+                    <div className="grid grid-cols-2 gap-4 pt-1">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-gray-400">Punch in / out</p>
+                        <p className="text-sm text-gray-900 mt-1">{fmtTime(d.checkIn)} – {fmtTime(d.checkOut)}</p>
                       </div>
-                      {(d.checkInAddr || d.checkOutAddr) && (
-                        <div className="mt-3 pt-3 border-t border-[#E2D9C8] space-y-1">
-                          {d.checkInAddr && <p className="text-[11px] text-[#9A8F82]">📍 In: {d.checkInAddr}</p>}
-                          {d.checkOutAddr && <p className="text-[11px] text-[#9A8F82]">📍 Out: {d.checkOutAddr}</p>}
-                        </div>
-                      )}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-gray-400">Working hrs</p>
+                        <p className="text-sm text-gray-900 mt-1">{calcWorkingHrs(d.checkIn, d.checkOut)}</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                    {(d.checkInAddr || d.checkOutAddr) && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
+                        {d.checkInAddr && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-emerald-600" /> In: {d.checkInAddr}
+                          </p>
+                        )}
+                        {d.checkOutAddr && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-rose-500" /> Out: {d.checkOutAddr}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
