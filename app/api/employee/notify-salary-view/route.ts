@@ -26,11 +26,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { data: employee } = await supabase
+    const { data: employee, error: empError } = await supabase
       .from('employees')
       .select('full_name, salary')
       .eq('email', user.email)
       .single()
+
+    if (empError || !employee) {
+      // This log is the key diagnostic — if you see this for a specific
+      // user, their auth email doesn't match employees.email exactly
+      // (case, whitespace, or missing record). The email still sends
+      // below, but with placeholder salary text.
+      console.error(`[salary-email] Employee lookup failed for ${user.email}:`, empError)
+    }
 
     const now = new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -42,7 +50,7 @@ export async function POST(req: NextRequest) {
       ? `₹${Number(employee.salary).toLocaleString('en-IN')}`
       : 'Not set — contact HR'
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"GK CRM" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: 'Your monthly salary details',
@@ -53,9 +61,15 @@ export async function POST(req: NextRequest) {
       `,
     })
 
+    // This confirms Hostinger SMTP accepted the mail for delivery.
+    // If this log appears but the employee still says "no mail received",
+    // the issue is on the receiving side (spam filter, wrong inbox) —
+    // not in this code.
+    console.log(`[salary-email] Sent to ${user.email}, messageId: ${info.messageId}`)
+
     return NextResponse.json({ success: true })
   } catch (e) {
-    console.error('Salary notify email failed:', e)
+    console.error('[salary-email] Send failed:', e)
     return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 })
   }
 }
