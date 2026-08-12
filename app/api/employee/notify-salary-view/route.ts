@@ -26,17 +26,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
+    // Correct column names matching the actual employees table schema —
+    // office_name does not exist, using designation instead.
     const { data: employee, error: empError } = await supabase
       .from('employees')
-      .select('full_name, salary')
+      .select('full_name, salary, employee_code, designation')
       .eq('email', user.email)
       .single()
 
     if (empError || !employee) {
-      // This log is the key diagnostic — if you see this for a specific
-      // user, their auth email doesn't match employees.email exactly
-      // (case, whitespace, or missing record). The email still sends
-      // below, but with placeholder salary text.
       console.error(`[salary-email] Employee lookup failed for ${user.email}:`, empError)
     }
 
@@ -50,21 +48,37 @@ export async function POST(req: NextRequest) {
       ? `₹${Number(employee.salary).toLocaleString('en-IN')}`
       : 'Not set — contact HR'
 
+    const employeeIdDisplay = employee?.employee_code ?? 'N/A'
+    const designationDisplay = employee?.designation ?? 'N/A'
+
     const info = await transporter.sendMail({
       from: `"GK CRM" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: 'Your monthly salary details',
       html: `
         <p>Hi ${employee?.full_name ?? ''},</p>
-        <p>Your monthly salary is: <strong>${salaryDisplay}</strong></p>
+        <table style="border-collapse:collapse;margin:12px 0;">
+          <tr>
+            <td style="padding:4px 12px 4px 0;color:#666;">Employee ID:</td>
+            <td style="padding:4px 0;font-weight:600;">${employeeIdDisplay}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 12px 4px 0;color:#666;">Email:</td>
+            <td style="padding:4px 0;font-weight:600;">${user.email}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 12px 4px 0;color:#666;">Designation:</td>
+            <td style="padding:4px 0;font-weight:600;">${designationDisplay}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 12px 4px 0;color:#666;">Monthly Salary:</td>
+            <td style="padding:4px 0;font-weight:600;">${salaryDisplay}</td>
+          </tr>
+        </table>
         <p style="color:#888;font-size:12px;">Requested from the GK CRM employee portal at ${now}. If this wasn't you, please contact HR immediately.</p>
       `,
     })
 
-    // This confirms Hostinger SMTP accepted the mail for delivery.
-    // If this log appears but the employee still says "no mail received",
-    // the issue is on the receiving side (spam filter, wrong inbox) —
-    // not in this code.
     console.log(`[salary-email] Sent to ${user.email}, messageId: ${info.messageId}`)
 
     return NextResponse.json({ success: true })
