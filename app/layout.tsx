@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'GK CRM — Business Management Portal',
   description: 'One unified platform for CRM, HR, Attendance, Projects, and Billing',
   manifest: '/manifest.json',
-  // Uses the existing icon-192 / icon-512 files already in public/ (same
-  // ones the PWA manifest points to) — no new files needed.
   icons: {
     icon: [
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -45,7 +44,7 @@ export default function RootLayout({
         />
       </head>
       <body style={{ fontFamily: "'DM Sans', sans-serif" }}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
