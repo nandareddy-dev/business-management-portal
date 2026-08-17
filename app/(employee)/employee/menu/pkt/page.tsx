@@ -1,3 +1,5 @@
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, PlayCircle, FileText, CheckCircle2, Lock } from 'lucide-react'
 
@@ -63,7 +65,14 @@ const statusStyle = {
   locked:    { icon: Lock,       badge: 'bg-gray-100 text-gray-400', label: 'Locked' },
 }
 
-export default function PktPage() {
+export default async function PktPage() {
+  // Primary auth gate is middleware on /employee/*. This check is a
+  // consistency + defense-in-depth measure matching the other employee
+  // sub-pages, in case the middleware matcher config ever changes.
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
   const completedCount = MODULES.filter(m => m.status === 'completed').length
   const totalCount = MODULES.length
   const progressPct = Math.round((completedCount / totalCount) * 100)

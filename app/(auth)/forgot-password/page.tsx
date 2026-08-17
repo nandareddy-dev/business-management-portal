@@ -1,19 +1,59 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const RESEND_COOLDOWN = 30 // seconds
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => setCooldown(c => c - 1), 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) { setError('Email required'); return }
+    const trimmedEmail = email.trim()
+
+    if (!trimmedEmail) { setError('Email required'); return }
+    if (!EMAIL_REGEX.test(trimmedEmail)) { setError('Enter a valid email address'); return }
+    if (cooldown > 0) return
+
     setLoading(true)
     setError('')
+
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { error: err } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+
+    setLoading(false)
+
+    // Security: never reveal whether the email exists (avoids email enumeration).
+    // Log the real error internally for debugging, but always show success to the user.
+    if (err) {
+      console.error('resetPasswordForEmail error:', err.message)
+    }
+
+    setSent(true)
+    setCooldown(RESEND_COOLDOWN)
+  }
+
+  const handleResend = async () => {
+    if (cooldown > 0 || loading) return
+    setLoading(true)
 
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,8 +65,8 @@ export default function ForgotPasswordPage() {
     })
 
     setLoading(false)
-    if (err) { setError(err.message); return }
-    setSent(true)
+    if (err) console.error('resetPasswordForEmail error:', err.message)
+    setCooldown(RESEND_COOLDOWN)
   }
 
   return (
@@ -49,14 +89,23 @@ export default function ForgotPasswordPage() {
             /* ── Success State ── */
             <div>
               <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center mb-6 text-3xl">📧</div>
-              <h1 className="text-3xl font-bold text-[#1C1712] mb-2">Email Sent!</h1>
-              <p className="text-[#7A6E60] mb-2">We&apos;ve sent a password reset link to</p>
-              <p className="font-semibold text-[#1C1712] mb-8">{email}</p>
+              <h1 className="text-3xl font-bold text-[#1C1712] mb-2">Check Your Email</h1>
+              <p className="text-[#7A6E60] mb-2">If an account exists for</p>
+              <p className="font-semibold text-[#1C1712] mb-8">{email.trim()}</p>
               <p className="text-sm text-[#9A8F82] mb-6">
-                Didn&apos;t receive it? Check your spam folder or try again.
+                you&apos;ll receive a password reset link shortly. Check your spam folder if it doesn&apos;t arrive in a few minutes.
               </p>
+
               <button
-                onClick={() => { setSent(false); setEmail('') }}
+                onClick={handleResend}
+                disabled={cooldown > 0 || loading}
+                className="text-sm text-[#B8860B] hover:underline font-medium mb-4 block disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+              >
+                {cooldown > 0 ? `Resend link in ${cooldown}s` : loading ? 'Sending...' : 'Resend link'}
+              </button>
+
+              <button
+                onClick={() => { setSent(false); setEmail(''); setCooldown(0) }}
                 className="text-sm text-[#B8860B] hover:underline font-medium mb-4 block"
               >
                 ← Try a different email
@@ -70,15 +119,18 @@ export default function ForgotPasswordPage() {
             <div>
               <p className="text-sm font-bold text-[#B8860B] uppercase tracking-widest mb-3">ACCOUNT RECOVERY</p>
               <h1 className="text-3xl font-bold text-[#1C1712] mb-2">Forgot Password?</h1>
-              <p className="text-[#7A6E60] mb-8">Enter your email and we&apos;lll send you a reset link.</p>
+              <p className="text-[#7A6E60] mb-8">Enter your email and we&apos;ll send you a reset link.</p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-semibold text-[#7A6E60] uppercase tracking-wider mb-1.5">
+                  <label htmlFor="email" className="block text-xs font-semibold text-[#7A6E60] uppercase tracking-wider mb-1.5">
                     Email Address
                   </label>
                   <input
+                    id="email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError('') }}
                     placeholder="your@email.com"

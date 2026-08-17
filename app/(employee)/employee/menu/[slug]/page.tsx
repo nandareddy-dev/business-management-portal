@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Construction } from 'lucide-react'
 
@@ -27,7 +27,11 @@ export default async function MenuPlaceholderPage({ params }: { params: Promise<
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const label = LABELS[slug] ?? 'Feature'
+  // Unknown slug — don't silently mask it as "coming soon"; a genuinely
+  // missing/mistyped route should 404 so broken links surface, not hide.
+  if (!LABELS[slug]) notFound()
+  const label = LABELS[slug]
+
   const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
   const serif = { fontFamily: 'Georgia, serif' }
 

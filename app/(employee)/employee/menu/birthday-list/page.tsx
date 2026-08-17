@@ -12,20 +12,40 @@ interface EmployeeBirthday {
   date_of_birth: string
 }
 
+// IST-safe "today" — avoids server-timezone dependent date math (previous
+// pages in this project had the same UTC/IST drift issue).
+function getISTDateParts(d: Date) {
+  const istStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }) // "YYYY-MM-DD"
+  const [year, month, date] = istStr.split('-').map(Number)
+  return { year, month: month - 1, date } // month is 0-indexed to match Date semantics
+}
+
 export default async function BirthdayListPage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: employees } = await supabase
+  // SECURITY: resolve the caller's own company_id first, then scope the
+  // employees query to it explicitly. Never query `employees` company-wide
+  // without a company_id filter — RLS may not be the only thing standing
+  // between tenants, and this keeps the query safe even if RLS has a gap.
+  const { data: employeeRow, error: employeeErr } = await supabase
+    .from('employees')
+    .select('company_id')
+    .eq('email', user.email!)
+    .single()
+
+  if (employeeErr || !employeeRow) redirect('/login')
+
+  const { data: employees, error: employeesErr } = await supabase
     .from('employees')
     .select('id, full_name, designation, date_of_birth')
+    .eq('company_id', employeeRow.company_id)
     .not('date_of_birth', 'is', null)
     .eq('is_active', true)
 
-  const today = new Date()
-  const todayMonth = today.getMonth()
-  const todayDate = today.getDate()
+  const { year: todayYear, month: todayMonth, date: todayDate } = getISTDateParts(new Date())
+  const today = new Date(todayYear, todayMonth, todayDate)
 
   // Sort by "days until next birthday" — ignoring year, wrapping to next year if already passed.
   const withNextOccurrence = (employees ?? []).map((e: EmployeeBirthday) => {
@@ -33,9 +53,9 @@ export default async function BirthdayListPage() {
     const month = dob.getMonth()
     const date = dob.getDate()
     let daysUntil = 0
-    const thisYearBday = new Date(today.getFullYear(), month, date)
-    if (thisYearBday < new Date(today.getFullYear(), todayMonth, todayDate)) {
-      const nextYearBday = new Date(today.getFullYear() + 1, month, date)
+    const thisYearBday = new Date(todayYear, month, date)
+    if (thisYearBday < today) {
+      const nextYearBday = new Date(todayYear + 1, month, date)
       daysUntil = Math.ceil((nextYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     } else {
       daysUntil = Math.ceil((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -63,6 +83,12 @@ export default async function BirthdayListPage() {
         </Link>
         <h1 className="text-xl font-medium text-gray-900">Birthday list</h1>
         <p className="text-xs text-gray-400 mt-0.5 mb-5">Celebrate the team, one birthday at a time</p>
+
+        {employeesErr && (
+          <div className="mb-4 px-4 py-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-600">
+            ⚠ Couldn&apos;t load birthdays right now. Please refresh the page.
+          </div>
+        )}
 
         {todayList.length > 0 && (
           <div className="mb-5">

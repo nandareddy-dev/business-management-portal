@@ -1,9 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 import { Eye, EyeOff } from 'lucide-react'
+
+function friendlyAuthError(message: string): string {
+  const msg = message.toLowerCase()
+  if (msg.includes('invalid login credentials')) return 'Incorrect email or password.'
+  if (msg.includes('email not confirmed')) return 'Please verify your email before signing in.'
+  if (msg.includes('too many requests')) return 'Too many attempts. Please try again in a bit.'
+  return 'Something went wrong signing in. Please try again.'
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -12,9 +20,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = useMemo(
+    () => createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ),
+    []
   )
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,66 +33,83 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    // 1. Sign in
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) { setError(authError.message); setLoading(false); return }
+    try {
+      const trimmedEmail = email.trim()
 
-    const userId = authData.user?.id
-    if (!userId) { setError('Login failed'); setLoading(false); return }
+      // 1. Sign in
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      })
+      if (authError) {
+        setError(friendlyAuthError(authError.message))
+        return
+      }
 
-    // 2. Profile fetch
-    const { data: profile, error: profileErr } = await supabase
-      .from('profiles')
-      .select('company_id, role')
-      .eq('id', userId)
-      .maybeSingle()
+      const userId = authData.user?.id
+      if (!userId) {
+        setError('Login failed. Please try again.')
+        return
+      }
 
-    if (profileErr) {
-      setError('Profile not found. Contact admin.')
+      // 2. Profile fetch
+      const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('company_id, role')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (profileErr) {
+        setError('Profile not found. Contact admin.')
+        return
+      }
+
+      // 3. Employee redirect
+      if (profile?.role === 'employee') {
+        window.location.href = '/employee'
+        return
+      }
+
+      // 4. Super admin redirect
+      if (profile?.role === 'super_admin') {
+        window.location.href = '/admin/dashboard'
+        return
+      }
+
+      // 5. No company_id — dashboard fallback
+      if (!profile?.company_id) {
+        window.location.href = '/dashboard'
+        return
+      }
+
+      // 6. Get company's active industries
+      const { data: companyIndustries, error: ciErr } = await supabase
+        .from('company_industries')
+        .select(`plan, is_active, industries(slug, name)`)
+        .eq('company_id', profile.company_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+
+      if (ciErr) {
+        console.error('company_industries fetch error:', ciErr)
+        window.location.href = '/dashboard'
+        return
+      }
+
+      // 7. ✅ Always redirect to /dashboard — overall summary page
+      if (!companyIndustries || companyIndustries.length === 0) {
+        window.location.href = '/onboarding'
+        return
+      }
+
+      // Single ya multiple — always /dashboard ki
+      window.location.href = '/dashboard'
+    } catch (err) {
+      console.error('Unexpected login error:', err)
+      setError('Something went wrong. Please check your connection and try again.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    // 3. Employee redirect
-    if (profile?.role === 'employee') {
-      window.location.href = '/employee'
-      return
-    }
-
-    // 4. Super admin redirect
-    if (profile?.role === 'super_admin') {
-      window.location.href = '/admin/dashboard'
-      return
-    }
-
-    // 5. No company_id — dashboard fallback
-    if (!profile?.company_id) {
-      window.location.href = '/dashboard'
-      return
-    }
-
-    // 6. Get company's active industries
-    const { data: companyIndustries, error: ciErr } = await supabase
-      .from('company_industries')
-      .select(`plan, is_active, industries(slug, name)`)
-      .eq('company_id', profile.company_id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: true })
-
-    if (ciErr) {
-      console.error('company_industries fetch error:', ciErr)
-      window.location.href = '/dashboard'
-      return
-    }
-
-    // 7. ✅ Always redirect to /dashboard — overall summary page
-    if (!companyIndustries || companyIndustries.length === 0) {
-      window.location.href = '/onboarding'
-      return
-    }
-
-    // Single ya multiple — always /dashboard ki
-    window.location.href = '/dashboard'
   }
 
   return (
@@ -108,9 +136,12 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7A6E60' }}>Email</label>
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#7A6E60' }}>Email</label>
               <input
+                id="email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -124,12 +155,15 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-bold uppercase tracking-widest" style={{ color: '#7A6E60' }}>Password</label>
+                <label htmlFor="password" className="text-xs font-bold uppercase tracking-widest" style={{ color: '#7A6E60' }}>Password</label>
                 <Link href="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: '#B8860B' }}>Forgot password?</Link>
               </div>
               <div className="relative">
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"

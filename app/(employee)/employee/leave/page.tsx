@@ -28,14 +28,30 @@ export default async function EmployeeLeavePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: employee } = await supabase
+  const { data: employee, error: employeeErr } = await supabase
     .from('employees')
     .select('id, full_name, company_id')
     .eq('email', user.email!)
     .single()
+
+  // Only redirect to login when the employee genuinely doesn't exist.
+  // A transient fetch error shouldn't kick out a legitimately logged-in user.
+  if (employeeErr) {
+    return (
+      <div className="min-h-screen bg-[#EFE9DD] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-[#1C1712] text-sm font-medium mb-1">Couldn&apos;t load your leave details</p>
+          <p className="text-[#9A8F82] text-xs mb-4">Something went wrong fetching your employee record. Please try again.</p>
+          <Link href="/employee" className="text-[#B8860B] text-xs font-semibold hover:underline">
+            ← Back to portal
+          </Link>
+        </div>
+      </div>
+    )
+  }
   if (!employee) redirect('/login')
 
-  const [{ data: balance }, { data: applications }] = await Promise.all([
+  const [{ data: balance, error: balanceErr }, { data: applications, error: applicationsErr }] = await Promise.all([
     // FIX: filter by month too — leave_balances now has one row per (employee, year, month),
     // so filtering by year alone can match multiple rows and break .single().
     supabase.from('leave_balances').select('*')
@@ -46,14 +62,18 @@ export default async function EmployeeLeavePage() {
     supabase.from('leave_applications').select('*').eq('employee_id', employee.id).order('created_at', { ascending: false }),
   ])
 
-  const pendingCount  = (applications as LeaveApplication[] ?? []).filter((a) => a.status === 'pending').length
-  const approvedCount = (applications as LeaveApplication[] ?? []).filter((a) => a.status === 'approved').length
-  const rejectedCount = (applications as LeaveApplication[] ?? []).filter((a) => a.status === 'rejected').length
+  const dataLoadFailed = Boolean(balanceErr || applicationsErr)
+
+  const apps = (applications as LeaveApplication[] | null) ?? []
+  const pendingCount  = apps.filter((a) => a.status === 'pending').length
+  const approvedCount = apps.filter((a) => a.status === 'approved').length
+  const rejectedCount = apps.filter((a) => a.status === 'rejected').length
 
   const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
   const serif = { fontFamily: 'Georgia, serif' }
   const ringR = 22
   const ringC = 2 * Math.PI * ringR
+  const dateTz = { timeZone: 'Asia/Kolkata' } as const
 
   const leaves = balance ? [
     { type: 'CL', full: 'Casual', total: balance.cl_total, used: balance.cl_used, stroke: '#B8860B' },
@@ -91,11 +111,19 @@ export default async function EmployeeLeavePage() {
             </div>
           </div>
 
+          {dataLoadFailed && (
+            <div className="bg-rose-50 border-t border-rose-200 px-6 py-3 lg:px-8">
+              <p className="text-[11px] text-rose-600">
+                ⚠ Some leave data couldn&apos;t be loaded right now. Please refresh the page — if this keeps happening, contact admin.
+              </p>
+            </div>
+          )}
+
           {/* §1 — Leave Ledger */}
           {balance && (
             <div className="bg-[#FAF7F2] border-t border-[#B8860B]/25 px-6 py-5 lg:px-8">
               <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-4 uppercase" style={mono}>
-                §1 — Leave Ledger — {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                §1 — Leave Ledger — {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric', ...dateTz })}
               </p>
               <div className="grid grid-cols-3 lg:max-w-md">
                 {leaves.map((l, i) => {
@@ -127,7 +155,7 @@ export default async function EmployeeLeavePage() {
           )}
 
           {/* §2 — Summary */}
-          {(applications ?? []).length > 0 && (
+          {apps.length > 0 && (
             <div className="bg-white border-t border-[#B8860B]/25 px-6 py-4 lg:px-8">
               <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-3 uppercase" style={mono}>§2 — Summary</p>
               <div className="grid grid-cols-3">
@@ -149,26 +177,27 @@ export default async function EmployeeLeavePage() {
           <div className="bg-[#FAF7F2] border-t border-[#B8860B]/25">
             <div className="flex items-center justify-between px-6 lg:px-8 pt-4 pb-1.5">
               <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase" style={mono}>§3 — Leave History</p>
-              <p className="text-[10px] text-[#9A8F82]">{applications?.length ?? 0} applications</p>
+              <p className="text-[10px] text-[#9A8F82]">{apps.length} applications</p>
             </div>
 
             <div>
-              {(applications as LeaveApplication[] ?? []).map((a, idx) => {
+              {apps.map((a, idx) => {
                 const color = statusStyle[a.status] ?? 'text-[#9A8F82]'
+                const days = a.days ?? 0
                 return (
                   <div key={a.id} className={`px-6 lg:px-8 py-3.5 flex items-start justify-between gap-3 ${idx > 0 ? 'border-t border-[#F0EAE0]' : ''}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="text-[10px] font-medium text-[#B8860B] tracking-wide uppercase" style={mono}>{a.leave_type}</span>
                         <span className="text-[#D0C9BE] text-[10px]">·</span>
-                        <span className="text-[10px] text-[#9A8F82]">{a.days} day{a.days > 1 ? 's' : ''}</span>
+                        <span className="text-[10px] text-[#9A8F82]">{days} day{days > 1 ? 's' : ''}</span>
                       </div>
                       <p className="text-[14px] text-[#1C1712]" style={serif}>
-                        {new Date(a.from_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {new Date(a.from_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', ...dateTz })}
                         {a.from_date !== a.to_date && (
-                          <> – {new Date(a.to_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</>
+                          <> – {new Date(a.to_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', ...dateTz })}</>
                         )}
-                        <span className="text-[#9A8F82]"> {new Date(a.from_date).getFullYear()}</span>
+                        <span className="text-[#9A8F82]"> {new Date(a.from_date).toLocaleDateString('en-IN', { year: 'numeric', ...dateTz })}</span>
                       </p>
                       {a.reason && (
                         <p className="text-[11px] text-[#9A8F82] mt-0.5 truncate">{a.reason}</p>
@@ -182,7 +211,7 @@ export default async function EmployeeLeavePage() {
                 )
               })}
 
-              {!applications?.length && (
+              {!apps.length && (
                 <div className="py-10 text-center px-6">
                   <p className="text-[#9A8F82] text-sm">No leave applications yet</p>
                   <p className="text-[#B8B0A0] text-xs mt-1">Apply for your first leave above</p>

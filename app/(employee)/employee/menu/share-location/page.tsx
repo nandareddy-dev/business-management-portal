@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -12,23 +12,47 @@ interface RecentVisit {
   created_at: string
 }
 
+// GeolocationPositionError is a distinct Web API type — it does NOT extend
+// Error, so `e instanceof Error` silently fails for it and always falls
+// through to the generic message. This maps the real permission/timeout/
+// unavailable reasons so employees (and you, debugging field reports) see
+// what actually went wrong.
+function getLocationErrorMessage(e: unknown): string {
+  if (e && typeof e === 'object' && 'code' in e) {
+    const code = (e as GeolocationPositionError).code
+    if (code === 1) return 'Location permission denied. Please enable location access in your browser/app settings.'
+    if (code === 2) return 'Location unavailable. Please check your GPS/network and try again.'
+    if (code === 3) return 'Location request timed out. Please try again.'
+  }
+  if (e instanceof Error) return e.message
+  return 'Failed to share location'
+}
+
 export default function ShareLocationPage() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = useMemo(
+    () => createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ),
+    []
   )
 
+  const [employeeId, setEmployeeId] = useState<string | null>(null)
   const [clientName, setClientName] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [recentVisits, setRecentVisits] = useState<RecentVisit[]>([])
 
-  const loadRecent = async () => {
+  // Resolve the employee id once and reuse it, instead of re-fetching on
+  // every share action.
+  const loadEmployeeAndRecent = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const { data: emp } = await supabase.from('employees').select('id').eq('email', user.email!).single()
     if (!emp) return
+    setEmployeeId(emp.id)
+
     const { data } = await supabase
       .from('site_visits')
       .select('id, client_name, address, created_at')
@@ -36,12 +60,21 @@ export default function ShareLocationPage() {
       .order('created_at', { ascending: false })
       .limit(5)
     setRecentVisits(data ?? [])
-  }
+  }, [supabase])
+
+  const loadRecentOnly = useCallback(async (empId: string) => {
+    const { data } = await supabase
+      .from('site_visits')
+      .select('id, client_name, address, created_at')
+      .eq('employee_id', empId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    setRecentVisits(data ?? [])
+  }, [supabase])
 
   useEffect(() => {
-    loadRecent()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    loadEmployeeAndRecent()
+  }, [loadEmployeeAndRecent])
 
   function getLocation(): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
@@ -58,10 +91,15 @@ export default function ShareLocationPage() {
     setLoading(true)
     setMessage(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not logged in')
-      const { data: emp } = await supabase.from('employees').select('id').eq('email', user.email!).single()
-      if (!emp) throw new Error('Employee profile not found')
+      let empId = employeeId
+      if (!empId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Not logged in')
+        const { data: emp } = await supabase.from('employees').select('id').eq('email', user.email!).single()
+        if (!emp) throw new Error('Employee profile not found')
+        empId = emp.id
+        setEmployeeId(emp.id)
+      }
 
       const position = await getLocation()
       const lat = position.coords.latitude
@@ -69,13 +107,18 @@ export default function ShareLocationPage() {
 
       let address: string | null = null
       try {
+        // Note: browser-side fetch to Nominatim can't set a custom
+        // User-Agent (browsers override it), which Nominatim's usage
+        // policy expects. As site-visit volume grows, consider proxying
+        // this through a server route instead. Failure here is non-fatal —
+        // address is optional and the visit still saves without it.
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
         const geo = await res.json()
         address = geo?.display_name ?? null
       } catch { /* address lookup optional */ }
 
       const { error } = await supabase.from('site_visits').insert({
-        employee_id: emp.id,
+        employee_id: empId,
         client_name: clientName.trim(),
         notes: notes.trim() || null,
         latitude: lat,
@@ -87,15 +130,15 @@ export default function ShareLocationPage() {
       setMessage({ type: 'success', text: 'Location shared successfully' })
       setClientName('')
       setNotes('')
-      loadRecent()
+      loadRecentOnly(empId)
     } catch (e: unknown) {
-      setMessage({ type: 'error', text: e instanceof Error ? e.message : 'Failed to share location' })
+      setMessage({ type: 'error', text: getLocationErrorMessage(e) })
     }
     setLoading(false)
   }
 
   const fmtTime = (iso: string) =>
-    new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   return (
     <div className="min-h-screen bg-gray-50">

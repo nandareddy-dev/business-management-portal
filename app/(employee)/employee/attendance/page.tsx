@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ChevronDown, ArrowUpRight, ArrowDownLeft, CalendarDays, MapPin } from 'lucide-react'
@@ -45,53 +45,94 @@ const STATUS_PILL: Record<string, string> = {
   holiday:     'bg-gray-100 text-gray-500',
 }
 
+// Timezone-safe YYYY-MM-DD formatting for Asia/Kolkata — avoids the
+// new Date(...).toISOString() off-by-one bug for IST users (UTC+5:30),
+// where local midnight rolls back to the previous UTC day.
+function toISTDateStr(d: Date) {
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+}
+
 export default function EmployeeAttendancePage() {
   const router = useRouter()
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = useMemo(
+    () => createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ),
+    []
   )
 
   const [records, setRecords]   = useState<AttendanceRecord[]>([])
   const [leaveApps, setLeaveApps] = useState<LeaveApp[]>([])
   const [loading, setLoading]   = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const requestIdRef = useRef(0)
 
   const now = new Date()
   const [viewYear, setViewYear]   = useState(now.getFullYear())
   const [viewMonth, setViewMonth] = useState(now.getMonth())
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth()
-  const todayStr   = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+  const todayStr   = toISTDateStr(now)
   const monthName  = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-IN', { month: 'long' })
 
-  const monthStart = new Date(viewYear, viewMonth, 1).toISOString().split('T')[0]
-  const monthEnd   = new Date(viewYear, viewMonth + 1, 0).toISOString().split('T')[0]
+  // Timezone-safe month bounds (fixes last-day-of-month data loss for IST users)
+  const monthStart = toISTDateStr(new Date(viewYear, viewMonth, 1))
+  const monthEnd   = toISTDateStr(new Date(viewYear, viewMonth + 1, 0))
 
   const loadData = useCallback(async () => {
+    const requestId = ++requestIdRef.current
+    setLoadError('')
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: emp } = await supabase
-        .from('employees').select('id, full_name').eq('email', user.email!).single()
-      if (!emp) { router.push('/login'); return }
 
-      const [{ data: recs }, { data: leaves }] = await Promise.all([
+      const { data: emp, error: empErr } = await supabase
+        .from('employees').select('id, full_name').eq('email', user.email!).single()
+
+      // Stale response guard — ignore if a newer request has since fired
+      if (requestId !== requestIdRef.current) return
+
+      if (empErr || !emp) {
+        setLoadError('Could not load your employee record. Please try again or contact admin.')
+        setLoading(false)
+        return
+      }
+
+      const [{ data: recs, error: recsErr }, { data: leaves, error: leavesErr }] = await Promise.all([
         supabase.from('attendance').select('*')
           .eq('employee_id', emp.id)
           .gte('attendance_date', monthStart)
           .lte('attendance_date', monthEnd)
           .order('attendance_date', { ascending: false }),
+        // Overlap query — catches leaves that span across the month boundary,
+        // not just leaves fully contained within it.
         supabase.from('leave_applications').select('from_date, to_date, leave_type, status')
           .eq('employee_id', emp.id)
           .eq('status', 'approved')
-          .gte('from_date', monthStart)
-          .lte('to_date', monthEnd),
+          .lte('from_date', monthEnd)
+          .gte('to_date', monthStart),
       ])
+
+      if (requestId !== requestIdRef.current) return
+
+      if (recsErr || leavesErr) {
+        setLoadError('Could not load attendance data. Please try again.')
+        setLoading(false)
+        return
+      }
+
       setRecords(recs ?? [])
       setLeaveApps(leaves ?? [])
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+    } catch (e) {
+      console.error(e)
+      if (requestId === requestIdRef.current) {
+        setLoadError('Something went wrong loading attendance. Please try again.')
+      }
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false)
+    }
   }, [supabase, router, monthStart, monthEnd])
 
   // Intentional refetch on month navigation; loadData itself sets loading=false
@@ -123,7 +164,7 @@ export default function EmployeeAttendancePage() {
   for (const l of leaveApps) {
     const from = new Date(l.from_date), to = new Date(l.to_date)
     for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().split('T')[0]
+      const key = toISTDateStr(d)
       if (!dateMap[key]) dateMap[key] = { status: 'leave' }
     }
   }
@@ -134,6 +175,7 @@ export default function EmployeeAttendancePage() {
   })
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+  // Weekend = Saturday & Sunday (both treated as default holiday below)
   function isWeekend(day: number) { return [0, 6].includes(new Date(viewYear, viewMonth, day).getDay()) }
 
   function calcWorkingHrs(checkIn?: string, checkOut?: string) {
@@ -158,7 +200,7 @@ export default function EmployeeAttendancePage() {
       return {
         day: d, dateStr: ds,
         dayName: new Date(viewYear, viewMonth, d).toLocaleDateString('en-IN', { weekday: 'long' }),
-        // Sunday defaults to holiday, but a real punch-in that day overrides it to the actual status.
+        // Weekend (Sat/Sun) defaults to holiday, but a real punch-in that day overrides it to the actual status.
         status: info?.status ?? (weekend ? 'holiday' : 'absent'),
         checkIn: info?.checkIn, checkOut: info?.checkOut,
         checkInAddr: info?.checkInAddr, checkOutAddr: info?.checkOutAddr,
@@ -183,6 +225,15 @@ export default function EmployeeAttendancePage() {
           <h1 className="text-xl font-medium text-gray-900">My attendance</h1>
           <p className="text-xs text-gray-400 mt-0.5">Roster {ROSTER_START} – {ROSTER_END}</p>
         </div>
+
+        {loadError && (
+          <div className="mb-4 px-4 py-3 rounded-xl text-sm bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-between">
+            <span>⚠ {loadError}</span>
+            <button onClick={() => { setLoading(true); loadData() }} className="text-xs font-semibold underline ml-3 flex-shrink-0">
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Month nav */}
         <div className="flex items-center justify-center gap-6 mb-4">
