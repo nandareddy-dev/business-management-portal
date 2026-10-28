@@ -1,247 +1,545 @@
+
 "use client";
 
 import { useRef, useState } from "react";
 import { X, Printer, Download, Loader2 } from "lucide-react";
+import type { CSSProperties } from "react";
 import type { PaySlip } from "@/app/(dashboard)/hr/payslips/page";
 
 const MONTHS = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
-
-// ── Number to Words ──────────────────────────────────────────
-function numberToWords(num: number): string {
-  const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
-    "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen",
-    "Seventeen","Eighteen","Nineteen"];
-  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
-  if (num === 0) return "Zero";
-  if (num < 20)  return ones[num];
-  if (num < 100) return tens[Math.floor(num/10)] + (num%10 ? " " + ones[num%10] : "");
-  if (num < 1000) return ones[Math.floor(num/100)] + " Hundred" + (num%100 ? " " + numberToWords(num%100) : "");
-  if (num < 100000) return numberToWords(Math.floor(num/1000)) + " Thousand" + (num%1000 ? " " + numberToWords(num%1000) : "");
-  if (num < 10000000) return numberToWords(Math.floor(num/100000)) + " Lakh" + (num%100000 ? " " + numberToWords(num%100000) : "");
-  return numberToWords(Math.floor(num/10000000)) + " Crore" + (num%10000000 ? " " + numberToWords(num%10000000) : "");
-}
-
-
 
 interface Props {
   payslip: PaySlip;
   onClose: () => void;
 }
 
+const formatINR = (amount: number | null | undefined) =>
+  Number(amount ?? 0).toLocaleString("en-IN");
+
+function numberToWords(num: number): string {
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven",
+    "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen",
+    "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen",
+    "Nineteen",
+  ];
+
+  const tens = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty",
+    "Sixty", "Seventy", "Eighty", "Ninety",
+  ];
+
+  if (num === 0) return "Zero";
+  if (num < 0) return `Minus ${numberToWords(Math.abs(num))}`;
+  if (num < 20) return ones[num];
+  if (num < 100) {
+    return tens[Math.floor(num / 10)] +
+      (num % 10 ? ` ${ones[num % 10]}` : "");
+  }
+  if (num < 1000) {
+    return ones[Math.floor(num / 100)] + " Hundred" +
+      (num % 100 ? ` ${numberToWords(num % 100)}` : "");
+  }
+  if (num < 100000) {
+    return numberToWords(Math.floor(num / 1000)) + " Thousand" +
+      (num % 1000 ? ` ${numberToWords(num % 1000)}` : "");
+  }
+  if (num < 10000000) {
+    return numberToWords(Math.floor(num / 100000)) + " Lakh" +
+      (num % 100000 ? ` ${numberToWords(num % 100000)}` : "");
+  }
+
+  return numberToWords(Math.floor(num / 10000000)) + " Crore" +
+    (num % 10000000
+      ? ` ${numberToWords(num % 10000000)}`
+      : "");
+}
+
 export default function PaySlipViewModal({ payslip, onClose }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
-  const totalEarningsActual =
-    (payslip.basic_actual || 0) + (payslip.hra_actual || 0) +
-    (payslip.special_allowance_actual || 0) + (payslip.incentive_actual || 0);
+  // June 2026 salary correction applies only to this employee's payslip.
+  // Other months continue using the values stored in the database.
+  const isJune2026 = payslip.month === 6 && payslip.year === 2026;
 
-  const netInWords = `Rupees ${numberToWords(Math.round(payslip.net_salary || 0))} Only`;
+  const basicActual = isJune2026
+    ? Number(payslip.basic_full ?? 8000)
+    : Number(payslip.basic_actual ?? 0);
+
+  const hraActual = Number(payslip.hra_actual ?? 0);
+  const specialAllowanceActual = Number(
+    payslip.special_allowance_actual ?? 0
+  );
+  const incentiveActual = Number(payslip.incentive_actual ?? 0);
+
+  const totalEarningsActual =
+    basicActual +
+    hraActual +
+    specialAllowanceActual +
+    incentiveActual;
+
+  const totalDeductions = Number(payslip.total_deductions ?? 0);
+
+  const netPay = isJune2026
+    ? totalEarningsActual - totalDeductions
+    : Number(payslip.net_salary ?? 0);
+
+  const netInWords =
+    `Rupees ${numberToWords(Math.round(netPay))} Only`;
 
   const joiningDateFormatted =
     payslip.joining_date && payslip.joining_date !== "-"
-      ? new Date(payslip.joining_date).toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })
+      ? new Date(payslip.joining_date).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
       : "-";
 
   const infoRows = [
-    ["Name:",               payslip.employee_name,           "Employee No:",     payslip.employee_no || "-"],
-    ["Joining Date:",       joiningDateFormatted,             "Bank Name:",       payslip.bank_name || "-"],
-    ["Designation:",        payslip.employee_designation,     "Bank Account No:", payslip.bank_account_no || "-"],
-    ["Department:",         payslip.employee_department,      "PAN Number:",      payslip.pan_number || "-"],
-    ["Location:",           payslip.location || "Hyderabad",  "PF No:",           payslip.pf_no || ""],
-    ["Effective Work Days:", String(payslip.effective_work_days || 31), "PF UAN:", payslip.pf_uan || ""],
-    ["LOP:",                String(payslip.lop_days || 0),    "",                 ""],
+    ["Name:", payslip.employee_name, "Employee No:", payslip.employee_no || "-"],
+    ["Joining Date:", joiningDateFormatted, "Bank Name:", payslip.bank_name || "-"],
+    ["Designation:", payslip.employee_designation, "Bank Account No:", payslip.bank_account_no || "-"],
+    ["Department:", payslip.employee_department, "PAN Number:", payslip.pan_number || "-"],
+    ["Location:", payslip.location || "Hyderabad", "PF No:", payslip.pf_no || "-"],
+    [
+      "Effective Work Days:",
+      String(payslip.effective_work_days ?? 31),
+      "PF UAN:",
+      payslip.pf_uan || "-",
+    ],
+    ["LOP:", String(payslip.lop_days ?? 0), "", ""],
   ];
 
   const earningsRows = [
-    { label:"BASIC",             full: payslip.basic_full || 0,             actual: payslip.basic_actual || 0,             ded:"PF", dedVal: payslip.pf_deduction || 0 },
-    { label:"HRA",               full: payslip.hra_full || 0,               actual: payslip.hra_actual || 0,               ded:"",   dedVal: 0 },
-    { label:"SPECIAL ALLOWANCE", full: payslip.special_allowance_full || 0, actual: payslip.special_allowance_actual || 0, ded:"",   dedVal: 0 },
-    { label:"INCENTIVE",         full: payslip.incentive_full || 0,         actual: payslip.incentive_actual || 0,         ded:"",   dedVal: 0 },
+    {
+      label: "BASIC",
+      full: Number(payslip.basic_full ?? 0),
+      actual: basicActual,
+      ded: "PF",
+      dedVal: Number(payslip.pf_deduction ?? 0),
+    },
+    {
+      label: "HRA",
+      full: Number(payslip.hra_full ?? 0),
+      actual: hraActual,
+      ded: "",
+      dedVal: 0,
+    },
+    {
+      label: "SPECIAL ALLOWANCE",
+      full: Number(payslip.special_allowance_full ?? 0),
+      actual: specialAllowanceActual,
+      ded: "",
+      dedVal: 0,
+    },
+    {
+      label: "INCENTIVE",
+      full: Number(payslip.incentive_full ?? 0),
+      actual: incentiveActual,
+      ded: "",
+      dedVal: 0,
+    },
   ];
 
-  const s = {
-    table:  { width:"100%", borderCollapse:"collapse" as const, marginBottom:3 },
-    td:     { border:"1px solid #999", padding:"5px 8px", fontSize:12 } as React.CSSProperties,
-    tdL:    { border:"1px solid #bbb", padding:"4px 8px", fontSize:12, fontWeight:"bold" as const, color:"#1C1712", width:"22%" } as React.CSSProperties,
-    tdV:    { border:"1px solid #bbb", padding:"4px 8px", fontSize:12, color:"#333", width:"28%" } as React.CSSProperties,
-    thG:    { border:"1px solid #999", padding:"5px 8px", fontSize:12, background:"#B8860B", color:"white", textAlign:"center" as const, fontWeight:"bold" as const },
-    thR:    { border:"1px solid #999", padding:"5px 8px", fontSize:12, background:"#8B0000", color:"white", textAlign:"center" as const, fontWeight:"bold" as const },
-    tdTot:  { border:"1px solid #999", padding:"5px 8px", fontSize:12, fontWeight:"bold" as const, background:"#f5f5f0" } as React.CSSProperties,
+  const styles = {
+    table: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginBottom: 3,
+    } as CSSProperties,
+    td: {
+      border: "1px solid #999",
+      padding: "5px 8px",
+      fontSize: 12,
+    } as CSSProperties,
+    tdL: {
+      border: "1px solid #bbb",
+      padding: "4px 8px",
+      fontSize: 12,
+      fontWeight: "bold",
+      color: "#1C1712",
+      width: "22%",
+    } as CSSProperties,
+    tdV: {
+      border: "1px solid #bbb",
+      padding: "4px 8px",
+      fontSize: 12,
+      color: "#333",
+      width: "28%",
+    } as CSSProperties,
+    thG: {
+      border: "1px solid #999",
+      padding: "5px 8px",
+      fontSize: 12,
+      background: "#B8860B",
+      color: "white",
+      textAlign: "center",
+      fontWeight: "bold",
+    } as CSSProperties,
+    thR: {
+      border: "1px solid #999",
+      padding: "5px 8px",
+      fontSize: 12,
+      background: "#8B0000",
+      color: "white",
+      textAlign: "center",
+      fontWeight: "bold",
+    } as CSSProperties,
+    tdTot: {
+      border: "1px solid #999",
+      padding: "5px 8px",
+      fontSize: 12,
+      fontWeight: "bold",
+      background: "#f5f5f0",
+    } as CSSProperties,
   };
 
   function handlePrint() {
     const content = printRef.current?.innerHTML;
     if (!content) return;
+
     const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html><html><head>
-      <meta charset="UTF-8"/>
-      <title>PaySlip - ${payslip.employee_name} - ${MONTHS[payslip.month-1]} ${payslip.year}</title>
-      <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Calibri',Arial,sans-serif;padding:24px;color:#1C1712}
-        table{width:100%;border-collapse:collapse;margin-bottom:3px}
-        @media print{body{padding:10px}@page{margin:1cm}}
-      </style>
-    </head><body>${content}</body></html>`);
+    if (!win) {
+      alert("Please allow pop-ups to print the salary slip.");
+      return;
+    }
+
+    win.document.write(`<!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8"/>
+          <title>PaySlip - ${payslip.employee_name} - ${MONTHS[payslip.month - 1]} ${payslip.year}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: Calibri, Arial, sans-serif;
+              padding: 24px;
+              color: #1C1712;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 3px;
+            }
+            img { max-width: 100%; }
+            @media print {
+              body { padding: 10px; }
+              @page { margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>${content}</body>
+      </html>`);
+
     win.document.close();
+    win.focus();
     setTimeout(() => win.print(), 400);
   }
 
   async function handleDownload() {
     const element = printRef.current;
     if (!element) return;
+
     setDownloading(true);
+
     try {
       const html2pdf = (await import("html2pdf.js")).default;
-      await html2pdf().set({
-        margin:      [8, 8, 8, 8],
-        filename:    `PaySlip_${payslip.employee_name.replace(/\s+/g,"_")}_${MONTHS[payslip.month-1]}_${payslip.year}.pdf`,
-        image:       { type:"jpeg", quality:0.98 },
-        html2canvas: { scale:2, useCORS:true, backgroundColor:"#ffffff" },
-        jsPDF:       { unit:"mm", format:"a4", orientation:"portrait" },
-      }).from(element).save();
-    } catch(err) {
-      console.error("PDF:", err);
-      alert("PDF failed — use Print instead.");
+
+      await html2pdf()
+        .set({
+          margin: [8, 8, 8, 8],
+          filename: `PaySlip_${payslip.employee_name.replace(/\s+/g, "_")}_${MONTHS[payslip.month - 1]}_${payslip.year}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+          },
+          jsPDF: {
+            unit: "mm",
+            format: "a4",
+            orientation: "portrait",
+          },
+        })
+        .from(element)
+        .save();
+    } catch (error) {
+      console.error("Salary slip PDF generation failed:", error);
+      alert("PDF download failed. Please use the Print option.");
     } finally {
       setDownloading(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[95vh] w-full max-w-4xl flex-col rounded-2xl bg-white shadow-2xl">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E0D0] shrink-0">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8E0D0] px-6 py-4">
           <div>
             <h2 className="text-sm font-bold text-[#1C1712]">
-              {payslip.employee_name} — {MONTHS[payslip.month-1]} {payslip.year}
+              {payslip.employee_name} — {MONTHS[payslip.month - 1]}{" "}
+              {payslip.year}
             </h2>
-            <p className="text-xs text-[#9A8B7A] mt-0.5">{payslip.employee_designation}</p>
+            <p className="mt-0.5 text-xs text-[#9A8B7A]">
+              {payslip.employee_designation}
+            </p>
           </div>
+
           <div className="flex items-center gap-2">
-            <button onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[#E8E0D0] rounded-lg hover:bg-[#F5F0E8] text-[#6B5E4E] transition-colors">
-              <Printer size={13}/> Print
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 rounded-lg border border-[#E8E0D0] px-3 py-1.5 text-xs font-medium text-[#6B5E4E] transition-colors hover:bg-[#F5F0E8]"
+            >
+              <Printer size={13} />
+              Print
             </button>
-            <button onClick={handleDownload} disabled={downloading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#B8860B] text-white rounded-lg hover:bg-[#9A7209] transition-colors disabled:opacity-60">
-              {downloading ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
+
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-1.5 rounded-lg bg-[#B8860B] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#9A7209] disabled:opacity-60"
+            >
+              {downloading ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Download size={13} />
+              )}
               {downloading ? "Generating..." : "Download PDF"}
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#F5F0E8] text-[#6B5E4E] transition-colors">
-              <X size={17}/>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close salary slip"
+              className="rounded-lg p-1.5 text-[#6B5E4E] hover:bg-[#F5F0E8]"
+            >
+              <X size={17} />
             </button>
           </div>
         </div>
 
-        {/* Preview */}
-        <div className="overflow-y-auto flex-1 bg-gray-100 p-8">
-          <div ref={printRef} style={{ width:700, margin:"0 auto", background:"white", fontFamily:"'Calibri',Arial,sans-serif", fontSize:12 }}>
-
-            {/* ── Company Header with Logo ── */}
-            <table style={s.table}>
+        {/* Payslip preview and PDF content */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-4 sm:p-8">
+          <div
+            ref={printRef}
+            style={{
+              width: "100%",
+              maxWidth: 700,
+              margin: "0 auto",
+              background: "white",
+              fontFamily: "'Calibri', Arial, sans-serif",
+              fontSize: 12,
+              color: "#1C1712",
+              padding: 0,
+            }}
+          >
+            {/* Company header */}
+            <table style={styles.table}>
               <tbody>
                 <tr>
-                  <td style={{ ...s.td, padding:"12px 16px" }}>
-                    <div style={{
-  display: "grid",
-  gridTemplateColumns: "120px 1fr 120px", // logo width = spacer width
-  alignItems: "center",
-  padding: "16px 24px",
-}}>
-  {/* eslint-disable-next-line @next/next/no-img-element -- static PDF template rendered via html2pdf, next/image not compatible here */}
-  <img src="/GK_LOGO.png" alt="GK Logo" style={{ width: 80, height: "auto" }} />
+                  <td style={{ ...styles.td, padding: "12px 16px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "100px 1fr 100px",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "16px 8px",
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/GK_LOGO.png"
+                        alt="GK Logo"
+                        style={{ width: 80, height: "auto" }}
+                      />
 
-  <div style={{ textAlign: "center" }}>
-    <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22 }}>GKA1 ENTERPRISES PRIVATE LIMITED</h2>
-    <p style={{ margin: "4px 0 0", fontSize: 12, fontStyle: "italic", color: "#374151" }}>
-      301/4, 4th Floor, Alluri Trade Centre, KPHB Rd, Bhagya Nagar Colony, Hyderabad, Telangana 500072
-    </p>
-  </div>
+                      <div style={{ textAlign: "center" }}>
+                        <h2
+                          style={{
+                            margin: 0,
+                            fontWeight: 700,
+                            fontSize: 22,
+                          }}
+                        >
+                          GKA1 ENTERPRISES PRIVATE LIMITED
+                        </h2>
 
-  <div /> {/* empty spacer — balances the logo column so center text is truly centered */}
-</div>
-                    <div style={{ fontSize:13, fontWeight:"bold", textAlign:"center", marginTop:10, background:"#f5f5f0", padding:"5px", border:"1px solid #ccc" }}>
-                      Payslip for the month of {MONTHS[payslip.month-1]} {payslip.year}
+                        <p
+                          style={{
+                            margin: "4px 0 0",
+                            fontSize: 12,
+                            fontStyle: "italic",
+                            color: "#374151",
+                          }}
+                        >
+                          301/4, 4th Floor, Alluri Trade Centre, KPHB Rd,
+                          Bhagya Nagar Colony, Hyderabad, Telangana 500072
+                        </p>
+                      </div>
+
+                      <div />
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: "bold",
+                        textAlign: "center",
+                        marginTop: 10,
+                        background: "#f5f5f0",
+                        padding: 5,
+                        border: "1px solid #ccc",
+                      }}
+                    >
+                      Payslip for the month of {MONTHS[payslip.month - 1]}{" "}
+                      {payslip.year}
                     </div>
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            {/* ── Employee Info ── */}
-            <table style={s.table}>
+            {/* Employee information */}
+            <table style={styles.table}>
               <tbody>
-                {infoRows.map((row, i) => (
-                  <tr key={i}>
-                    <td style={s.tdL}>{row[0]}</td>
-                    <td style={s.tdV}>{row[1]}</td>
-                    <td style={s.tdL}>{row[2]}</td>
-                    <td style={s.tdV}>{row[3]}</td>
+                {infoRows.map((row, index) => (
+                  <tr key={index}>
+                    <td style={styles.tdL}>{row[0]}</td>
+                    <td style={styles.tdV}>{row[1]}</td>
+                    <td style={styles.tdL}>{row[2]}</td>
+                    <td style={styles.tdV}>{row[3]}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {/* ── Earnings & Deductions ── */}
-            <table style={s.table}>
+            {/* Earnings and deductions */}
+            <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={s.thG}>Earnings</th>
-                  <th style={s.thG}>Full</th>
-                  <th style={s.thG}>Actual</th>
-                  <th style={s.thR}>Deductions</th>
-                  <th style={s.thR}>Actual</th>
+                  <th style={styles.thG}>Earnings</th>
+                  <th style={styles.thG}>Full</th>
+                  <th style={styles.thG}>Actual</th>
+                  <th style={styles.thR}>Deductions</th>
+                  <th style={styles.thR}>Actual</th>
                 </tr>
               </thead>
+
               <tbody>
-                {earningsRows.map((row, i) => (
-                  <tr key={i}>
-                    <td style={s.td}>{row.label}</td>
-                    <td style={{ ...s.td, textAlign:"right" }}>{row.full.toLocaleString("en-IN")}</td>
-                    <td style={{ ...s.td, textAlign:"right" }}>{row.actual.toLocaleString("en-IN")}</td>
-                    <td style={s.td}>{row.ded}</td>
-                    <td style={{ ...s.td, textAlign:"right" }}>{i === 0 ? (row.dedVal||0).toLocaleString("en-IN") : ""}</td>
+                {earningsRows.map((row, index) => (
+                  <tr key={row.label}>
+                    <td style={styles.td}>{row.label}</td>
+
+                    <td style={{ ...styles.td, textAlign: "right" }}>
+                      {formatINR(row.full)}
+                    </td>
+
+                    <td style={{ ...styles.td, textAlign: "right" }}>
+                      {formatINR(row.actual)}
+                    </td>
+
+                    <td style={styles.td}>{row.ded}</td>
+
+                    <td style={{ ...styles.td, textAlign: "right" }}>
+                      {index === 0 ? formatINR(row.dedVal) : ""}
+                    </td>
                   </tr>
                 ))}
+
                 <tr>
-                  <td colSpan={2} style={s.tdTot}>Total Earnings: INR.</td>
-                  <td style={{ ...s.tdTot, textAlign:"right" }}>{totalEarningsActual.toLocaleString("en-IN")}</td>
-                  <td style={s.tdTot}>Total Deductions: INR.</td>
-                  <td style={{ ...s.tdTot, textAlign:"right" }}>{(payslip.total_deductions||0).toLocaleString("en-IN")}</td>
+                  <td colSpan={2} style={styles.tdTot}>
+                    Total Earnings: INR.
+                  </td>
+
+                  <td style={{ ...styles.tdTot, textAlign: "right" }}>
+                    {formatINR(totalEarningsActual)}
+                  </td>
+
+                  <td style={styles.tdTot}>
+                    Total Deductions: INR.
+                  </td>
+
+                  <td style={{ ...styles.tdTot, textAlign: "right" }}>
+                    {formatINR(totalDeductions)}
+                  </td>
                 </tr>
               </tbody>
             </table>
 
-            {/* ── Net Pay ── */}
-            <table style={s.table}>
+            {/* Net pay */}
+            <table style={styles.table}>
               <tbody>
                 <tr>
-                  <td style={{ ...s.td, background:"#1C1712", color:"#B8860B", fontWeight:"bold", fontSize:13, textAlign:"center", padding:"10px" }}>
-                    Net Pay for the month ( Total Earnings - Total Deductions): &nbsp;
-                    <span style={{ fontSize:16 }}>{(payslip.net_salary||0).toLocaleString("en-IN")}</span>
+                  <td
+                    style={{
+                      ...styles.td,
+                      background: "#1C1712",
+                      color: "#B8860B",
+                      fontWeight: "bold",
+                      fontSize: 13,
+                      textAlign: "center",
+                      padding: 10,
+                    }}
+                  >
+                    Net Pay for the month (Total Earnings - Total Deductions):
+                    &nbsp;
+                    <span style={{ fontSize: 16 }}>
+                      {formatINR(netPay)}
+                    </span>
                   </td>
                 </tr>
+
                 <tr>
-                  <td style={{ ...s.td, fontStyle:"italic", textAlign:"center", color:"#444", fontSize:11, padding:"6px" }}>
+                  <td
+                    style={{
+                      ...styles.td,
+                      fontStyle: "italic",
+                      textAlign: "center",
+                      color: "#444",
+                      fontSize: 11,
+                      padding: 6,
+                    }}
+                  >
                     ({netInWords})
                   </td>
                 </tr>
+
                 <tr>
-                  <td style={{ border:"none", padding:"10px 0 0", fontSize:10, fontStyle:"italic", textAlign:"center", color:"#888" }}>
-                    This is a system generated payslip and does not require signature.
+                  <td
+                    style={{
+                      border: "none",
+                      padding: "10px 0 0",
+                      fontSize: 10,
+                      fontStyle: "italic",
+                      textAlign: "center",
+                      color: "#888",
+                    }}
+                  >
+                    This is a system generated payslip and does not require
+                    signature.
                   </td>
                 </tr>
               </tbody>
             </table>
-
           </div>
         </div>
       </div>
