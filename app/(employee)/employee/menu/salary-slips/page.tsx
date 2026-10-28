@@ -18,7 +18,7 @@ type EmployeeRecord = {
   department?: string | null;
   join_date?: string | null;
   bank_name?: string | null;
-  account_number?: string | null;
+  bank_account_no?: string | null;
   pan_number?: string | null;
   pf_number?: string | null;
   uan_number?: string | null;
@@ -175,7 +175,7 @@ export default async function SalarySlipsPage() {
         employee_department: employee.department ?? "-",
         joining_date: employee.join_date ?? "",
         bank_name: employee.bank_name ?? "",
-        bank_account_no: employee.account_number ?? "",
+        bank_account_no: employee.bank_account_no ?? "",
         pan_number: employee.pan_number ?? "",
         pf_no: employee.pf_number ?? "",
         pf_uan: employee.uan_number ?? "",
