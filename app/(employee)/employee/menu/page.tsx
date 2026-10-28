@@ -22,7 +22,7 @@ const menuItems = [
   { label: 'Briefing',       href: '/employee/menu/briefing',        Icon: ClipboardList,     color: '#EA580C' },
   { label: 'Reference',      href: '/employee/menu/reference',       Icon: Users,             color: '#A855F7' },
   { label: 'Holidays',       href: '/employee/menu/holidays',        Icon: Umbrella,          color: '#1E293B' },
-  { label: 'Salary Cert.',   href: '/employee/menu/salary-cert',     Icon: FileBadge,         color: '#059669' },
+  { label: 'Salary Slips.',   href: '/employee/menu/salary-slips',     Icon: FileBadge,         color: '#059669' },
   { label: 'QR-Code',        href: '/employee/menu/qr-code',         Icon: QrCode,            color: '#334155' },
   { label: 'Privacy',        href: '/employee/menu/privacy',         Icon: Lock,              color: '#D97706' },
   { label: 'Posh Video',     href: '/employee/menu/posh-video',      Icon: ShieldAlert,       color: '#DC2626' },

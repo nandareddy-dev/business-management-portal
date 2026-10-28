@@ -5,3 +5,34 @@ body {
   margin: 0;
   padding: 0;
 }
+
+
+@media print {
+  body {
+    background: white !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    display: block !important;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 24px;
+    color: black;
+    background: white;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
