@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, MapPin, CheckCircle2, XCircle, Clock,
-  Navigation, MessageCircle, Copy, Check, ExternalLink,
+  Navigation, MessageCircle, Copy, Check, ExternalLink, Building2, StickyNote, Crosshair,
 } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 
@@ -44,6 +44,9 @@ function staticMapUrl(lat: number, lng: number, zoom = 15) {
 function googleMapsUrl(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`
 }
+
+const inputClass =
+  'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100 sm:text-sm'
 
 export default function ShareLocationPage() {
   const supabase = useMemo(
@@ -161,183 +164,227 @@ export default function ShareLocationPage() {
   const fmtTime = (iso: string) =>
     new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
-  const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
-  const serif = { fontFamily: 'Georgia, serif' }
-
   return (
-    <div className="min-h-screen bg-[#EFE9DD]">
-      <div className="max-w-3xl mx-auto py-4 px-3 lg:py-6 lg:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white">
+      <div className="mx-auto max-w-3xl px-4 py-5 pb-28 lg:px-6 lg:py-6">
 
-        <div className="relative border border-[#B8860B]/35">
-          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
+        {/* ── HERO ── */}
+        <section className="relative isolate mb-5 overflow-hidden rounded-3xl bg-slate-900 p-5 text-white shadow-xl sm:p-7">
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
+              backgroundSize: '18px 18px',
+            }}
+          />
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 -z-10 h-56 w-56 rounded-full bg-indigo-500/30 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-20 left-6 -z-10 h-48 w-48 rounded-full bg-emerald-500/20 blur-3xl" />
 
-          {/* Hero */}
-          <div className="bg-[#1C1712] px-6 py-5 lg:px-8 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.05]" style={{
-              backgroundImage: 'linear-gradient(#B8860B 1px, transparent 1px), linear-gradient(90deg, #B8860B 1px, transparent 1px)',
-              backgroundSize: '28px 28px'
-            }} />
-            <div className="relative">
-              <Link href="/employee/menu" className="text-white/40 text-[10px] tracking-[1.5px] uppercase flex items-center gap-1.5 mb-3 w-fit hover:text-[#D4A537] transition-colors" style={mono}>
-                <ArrowLeft className="w-3 h-3" /> Back to menu
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border border-[#B8860B]/40 flex items-center justify-center flex-shrink-0">
-                  <Navigation className="w-4 h-4 text-[#D4A537]" />
-                </div>
-                <div>
-                  <h1 className="text-[24px] text-white italic" style={{ fontFamily: 'Georgia, serif', fontWeight: 500 }}>Share Location</h1>
-                  <p className="text-[11px] text-white/40 mt-0.5 tracking-wide" style={mono}>LIVE SITE-VISIT TRACKING</p>
-                </div>
-              </div>
+          <Link
+            href="/employee/menu"
+            className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-100 ring-1 ring-white/15 transition hover:bg-white/20"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to menu
+          </Link>
+
+          <div className="mt-5 flex items-center gap-3.5">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/25 backdrop-blur">
+              <Navigation className="h-6 w-6 text-emerald-300" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-300">Employee Portal</p>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Share Location</h1>
+              <p className="text-sm text-slate-300">Live site-visit tracking</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── NEW SITE VISIT ── */}
+        <section className="mb-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <Crosshair className="h-[18px] w-[18px]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 sm:text-base">New site visit</h2>
+              <p className="text-xs text-slate-500">Capture where you are right now</p>
             </div>
           </div>
 
-          {/* §1 — New visit form */}
-          <div className="bg-[#FAF7F2] border-t border-[#B8860B]/25 px-6 py-5 lg:px-8">
-            <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-4 uppercase" style={mono}>§1 — New Site Visit</p>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Client / Site name</label>
+              <div className="relative">
+                <Building2 size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="e.g. SUVE — Kukatpally site visit"
+                  className={inputClass}
+                />
+              </div>
+            </div>
 
-            <label className="text-[10px] tracking-[1px] text-[#8B6914] font-medium uppercase mb-1.5 block" style={mono}>Client / Site Name</label>
-            <input
-              type="text"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="e.g. SUVE — Kukatpally site visit"
-              className="w-full bg-white border border-[#E2D9C8] rounded-xl px-4 py-3 text-sm text-[#1C1712] outline-none focus:border-[#B8860B] transition-colors shadow-sm mb-4"
-            />
-
-            <label className="text-[10px] tracking-[1px] text-[#8B6914] font-medium uppercase mb-1.5 block" style={mono}>Notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Purpose of visit, meeting notes, etc."
-              rows={2}
-              className="w-full bg-white border border-[#E2D9C8] rounded-xl px-4 py-3 text-sm text-[#1C1712] outline-none focus:border-[#B8860B] transition-colors shadow-sm mb-4"
-            />
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Notes (optional)</label>
+              <div className="relative">
+                <StickyNote size={16} className="pointer-events-none absolute left-3.5 top-3.5 text-slate-400" />
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Purpose of visit, meeting notes, etc."
+                  rows={3}
+                  className={`${inputClass} resize-none`}
+                />
+              </div>
+            </div>
 
             <button
               onClick={handleShare}
               disabled={loading}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white bg-[#1C1712] hover:bg-[#2d2822] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:from-indigo-700 hover:to-blue-700 disabled:opacity-60 disabled:shadow-none"
             >
               {loading
-                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Getting your location...</>
-                : <><MapPin className="w-4 h-4 text-[#D4A537]" /> Share Current Location</>}
+                ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Getting your location...</>
+                : <><MapPin className="h-4 w-4" /> Share Current Location</>}
             </button>
 
             {message && (
-              <p className={`text-xs mt-3 flex items-center gap-1.5 ${message.type === 'error' ? 'text-rose-600' : 'text-emerald-600'}`}>
+              <div
+                className={`flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium ring-1 ${
+                  message.type === 'error'
+                    ? 'bg-rose-50 text-rose-700 ring-rose-100'
+                    : 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+                }`}
+              >
                 {message.type === 'error'
-                  ? <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                  : <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />}
-                {message.text}
-              </p>
+                  ? <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  : <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" />}
+                <span className="min-w-0 break-words">{message.text}</span>
+              </div>
             )}
           </div>
+        </section>
 
-          {/* §2 — Live map preview after capture */}
-          {captured && (
-            <div className="bg-white border-t border-[#B8860B]/25 px-6 py-5 lg:px-8">
-              <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold mb-4 uppercase" style={mono}>§2 — Captured Location</p>
+        {/* ── CAPTURED LOCATION ── */}
+        {captured && (
+          <section className="mb-5 overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={staticMapUrl(captured.lat, captured.lng)}
+                alt="Map preview of captured location"
+                className="h-[220px] w-full bg-slate-100 object-cover"
+              />
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Captured
+              </span>
+              <span className="absolute bottom-3 left-3 rounded-full bg-slate-900/80 px-3 py-1 font-mono text-[11px] text-white backdrop-blur">
+                {captured.lat.toFixed(6)}, {captured.lng.toFixed(6)}
+              </span>
+            </div>
 
-              <div className="rounded-xl overflow-hidden border border-[#E2D9C8] mb-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={staticMapUrl(captured.lat, captured.lng)}
-                  alt="Map preview of captured location"
-                  className="w-full h-[220px] object-cover bg-[#F0EAE0]"
-                />
-              </div>
-
+            <div className="p-4 sm:p-5">
               {captured.address && (
-                <p className="text-[12px] text-[#7A6E60] mb-3 flex items-start gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#B8860B] flex-shrink-0 mt-0.5" />
-                  {captured.address}
+                <p className="mb-4 flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-sm leading-snug text-slate-600 ring-1 ring-slate-100">
+                  <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500" />
+                  <span className="min-w-0 break-words">{captured.address}</span>
                 </p>
               )}
-              <p className="text-[10px] text-[#B8B0A0] mb-4" style={mono}>
-                {captured.lat.toFixed(6)}, {captured.lng.toFixed(6)}
-              </p>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2.5">
                 <a
                   href={googleMapsUrl(captured.lat, captured.lng)}
                   target="_blank" rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl border border-[#E2D9C8] hover:bg-[#FAF7F2] transition-colors"
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-indigo-50 py-3.5 ring-1 ring-indigo-100 transition hover:bg-indigo-100"
                 >
-                  <ExternalLink className="w-4 h-4 text-[#1C1712]" />
-                  <span className="text-[10px] font-medium text-[#7A6E60]">Open Map</span>
+                  <ExternalLink className="h-5 w-5 text-indigo-600" />
+                  <span className="text-[11px] font-semibold text-indigo-700">Open Map</span>
                 </a>
                 <a
                   href={whatsappShareUrl(captured.lat, captured.lng, clientName)}
                   target="_blank" rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl border border-[#E2D9C8] hover:bg-[#FAF7F2] transition-colors"
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-emerald-50 py-3.5 ring-1 ring-emerald-100 transition hover:bg-emerald-100"
                 >
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
-                  <span className="text-[10px] font-medium text-[#7A6E60]">WhatsApp</span>
+                  <MessageCircle className="h-5 w-5 text-emerald-600" />
+                  <span className="text-[11px] font-semibold text-emerald-700">WhatsApp</span>
                 </a>
                 <button
                   onClick={() => handleCopy(captured.lat, captured.lng)}
-                  className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl border border-[#E2D9C8] hover:bg-[#FAF7F2] transition-colors"
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-slate-50 py-3.5 ring-1 ring-slate-200 transition hover:bg-slate-100"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-[#1C1712]" />}
-                  <span className="text-[10px] font-medium text-[#7A6E60]">{copied ? 'Copied' : 'Copy Link'}</span>
+                  {copied ? <Check className="h-5 w-5 text-emerald-600" /> : <Copy className="h-5 w-5 text-slate-700" />}
+                  <span className="text-[11px] font-semibold text-slate-600">{copied ? 'Copied' : 'Copy Link'}</span>
                 </button>
               </div>
             </div>
-          )}
+          </section>
+        )}
 
-          {/* §3 — Recent visits */}
-          <div className="bg-[#FAF7F2] border-t border-[#B8860B]/25">
-            <div className="flex items-center justify-between px-6 lg:px-8 pt-4 pb-1.5">
-              <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase flex items-center gap-1.5" style={mono}>
-                <Clock className="w-3 h-3" /> §3 — Recent Visits
-              </p>
-              <p className="text-[10px] text-[#9A8F82]">{recentVisits.length} logged</p>
+        {/* ── RECENT VISITS ── */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                <Clock className="h-[18px] w-[18px]" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900 sm:text-base">Recent visits</h2>
             </div>
-
-            {recentVisits.length === 0 ? (
-              <div className="py-10 text-center px-6">
-                <p className="text-[#9A8F82] text-sm">No site visits shared yet.</p>
-                <p className="text-[#B8B0A0] text-xs mt-1">Your captured visits will appear here</p>
-              </div>
-            ) : (
-              <div>
-                {recentVisits.map((v, i) => (
-                  <div key={v.id} className={`px-6 lg:px-8 py-3.5 flex items-start justify-between gap-3 ${i > 0 ? 'border-t border-[#F0EAE0]' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14px] text-[#1C1712]" style={serif}>{v.client_name}</p>
-                      {v.address && (
-                        <p className="text-[11px] text-[#9A8F82] mt-0.5 flex items-center gap-1 truncate">
-                          <MapPin className="w-3 h-3 flex-shrink-0" /> {v.address}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] text-[#9A8F82]">{fmtTime(v.created_at)}</span>
-                      {v.latitude != null && v.longitude != null && (
-                        <a
-                          href={googleMapsUrl(v.latitude, v.longitude)}
-                          target="_blank" rel="noopener noreferrer"
-                          className="text-[#B8860B] hover:text-[#8B6914]"
-                          title="Open in Google Maps"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+              {recentVisits.length} logged
+            </span>
           </div>
 
-        </div>
+          {recentVisits.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                <MapPin className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-bold text-slate-900">No site visits shared yet.</p>
+              <p className="mt-1 text-sm text-slate-500">Your captured visits will appear here</p>
+            </div>
+          ) : (
+            <ul className="space-y-2.5">
+              {recentVisits.map((v) => (
+                <li
+                  key={v.id}
+                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5 transition hover:bg-white hover:shadow-sm"
+                >
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-200">
+                    <MapPin className="h-[18px] w-[18px]" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-slate-900">{v.client_name}</p>
+                    {v.address && (
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-500">{v.address}</p>
+                    )}
+                    <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
+                      <Clock className="h-3 w-3" /> {fmtTime(v.created_at)}
+                    </p>
+                  </div>
+
+                  {v.latitude != null && v.longitude != null && (
+                    <a
+                      href={googleMapsUrl(v.latitude, v.longitude)}
+                      target="_blank" rel="noopener noreferrer"
+                      title="Open in Google Maps"
+                      aria-label={`Open ${v.client_name} in Google Maps`}
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white text-indigo-600 ring-1 ring-slate-200 transition hover:bg-indigo-50"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
       </div>
-      <div className="h-20" />
     </div>
   )
 }
