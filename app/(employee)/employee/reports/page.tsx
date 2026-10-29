@@ -1,26 +1,13 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Clock, Folder, MessageSquare } from 'lucide-react'
+import {
+  ArrowLeft, Clock3, Folder, MessageSquare, CheckCircle2, Hourglass, FileText,
+} from 'lucide-react'
 import { SubmitReportButton } from '@/components/employee/submit-report-button'
+import { ReportsList, type Report } from '@/components/employee/reports-list'
 
 export const dynamic = 'force-dynamic'
-
-const statusStyle: Record<string, string> = {
-  completed:   'text-emerald-700',
-  in_progress: 'text-blue-700',
-  pending:     'text-amber-700',
-}
-
-interface Report {
-  id: string
-  status?: string
-  report_date: string
-  task_description?: string
-  project_name?: string
-  hours_spent?: number | string
-  manager_comment?: string
-}
 
 export default async function EmployeeReportsPage() {
   const supabase = await createServerSupabaseClient()
@@ -42,33 +29,48 @@ export default async function EmployeeReportsPage() {
       .order('report_date', { ascending: false }).limit(30),
   ])
 
-  const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
   const serif = { fontFamily: 'Georgia, serif' }
+  const list = (reports as Report[] | null) ?? []
+
+  const totalHours = list.reduce((sum, r) => sum + (Number(r.hours_spent) || 0), 0)
+  const completedCount = list.filter(r => r.status === 'completed').length
+
+  const stats = [
+    { label: 'Reports',    value: String(list.length),          Icon: FileText,     tone: 'text-[#8B6914] bg-[#F3ECDB]' },
+    { label: 'Hours logged', value: String(Number(totalHours.toFixed(1))), Icon: Hourglass, tone: 'text-amber-700 bg-amber-50' },
+    { label: 'Completed',  value: String(completedCount),       Icon: CheckCircle2, tone: 'text-emerald-700 bg-emerald-50' },
+  ]
 
   return (
     <div className="min-h-screen bg-[#EFE9DD]">
-      <div className="max-w-3xl mx-auto py-4 px-3 lg:py-6 lg:px-6">
+      <div className="mx-auto max-w-3xl px-3 py-4 pb-28 lg:px-6 lg:py-6">
 
         <div className="relative border border-[#B8860B]/35">
-          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#B8860B] pointer-events-none z-10" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#B8860B] pointer-events-none z-10" />
+          <div className="pointer-events-none absolute left-0 top-0 z-10 h-3 w-3 border-l-2 border-t-2 border-[#B8860B]" />
+          <div className="pointer-events-none absolute right-0 top-0 z-10 h-3 w-3 border-r-2 border-t-2 border-[#B8860B]" />
+          <div className="pointer-events-none absolute bottom-0 left-0 z-10 h-3 w-3 border-b-2 border-l-2 border-[#B8860B]" />
+          <div className="pointer-events-none absolute bottom-0 right-0 z-10 h-3 w-3 border-b-2 border-r-2 border-[#B8860B]" />
 
           {/* Hero */}
-          <div className="bg-[#1C1712] px-6 py-5 lg:px-8 relative overflow-hidden">
+          <div className="relative overflow-hidden bg-[#1C1712] px-6 py-6 lg:px-8">
             <div className="absolute inset-0 opacity-[0.05]" style={{
               backgroundImage: 'linear-gradient(#B8860B 1px, transparent 1px), linear-gradient(90deg, #B8860B 1px, transparent 1px)',
-              backgroundSize: '28px 28px'
+              backgroundSize: '28px 28px',
             }} />
+            <div aria-hidden className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#B8860B]/25 blur-3xl" />
             <div className="relative">
-              <Link href="/employee" className="text-white/40 text-[10px] tracking-[1.5px] uppercase flex items-center gap-1.5 mb-3 w-fit hover:text-[#D4A537] transition-colors" style={mono}>
-                <ArrowLeft className="w-3 h-3" /> Back to portal
+              <Link
+                href="/employee"
+                className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition hover:border-[#D4A537]/50 hover:text-[#D4A537]"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Back to portal
               </Link>
-              <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-[24px] text-white italic" style={{ fontFamily: 'Georgia, serif', fontWeight: 500 }}>Work Reports</h1>
-                  <p className="text-[11px] text-white/40 mt-1 tracking-wide" style={mono}>DAILY TASK SUBMISSIONS</p>
+                  <h1 className="text-[28px] italic leading-tight text-white" style={{ ...serif, fontWeight: 500 }}>
+                    Work reports
+                  </h1>
+                  <p className="mt-1 text-sm text-white/50">Your daily task submissions</p>
                 </div>
                 {!todayReport && (
                   <SubmitReportButton employeeId={employee.id} companyId={employee.company_id} />
@@ -77,79 +79,76 @@ export default async function EmployeeReportsPage() {
             </div>
           </div>
 
-          {/* §1 — Today's report */}
-          {todayReport && (
-            <div className="bg-emerald-50/40 border-t border-[#B8860B]/25 px-6 py-4 lg:px-8">
-              <p className="text-[9px] tracking-[3px] text-emerald-700 font-semibold mb-3 uppercase" style={mono}>§1 — Today&apos;s Submission</p>
-              <p className="text-[15px] text-[#1C1712] mb-2" style={serif}>{todayReport.task_description}</p>
-              {(todayReport.project_name || todayReport.hours_spent) && (
-                <div className="flex items-center gap-4 text-[11px] text-emerald-700 mb-2">
-                  {todayReport.project_name && (
-                    <span className="flex items-center gap-1"><Folder className="w-3 h-3" /> {todayReport.project_name}</span>
-                  )}
-                  {todayReport.hours_spent && (
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {todayReport.hours_spent}h spent</span>
-                  )}
-                </div>
-              )}
-              {todayReport.manager_comment && (
-                <div className="border-l-2 border-blue-400 pl-3 py-1 mt-2 flex items-start gap-2">
-                  <MessageSquare className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-[11px] text-blue-700">{todayReport.manager_comment}</p>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Today */}
+          <section className="border-t border-[#B8860B]/25 bg-[#FAF7F2] px-6 py-6 lg:px-8">
+            <h2 className="mb-4 text-lg text-[#1C1712]" style={serif}>Today</h2>
 
-          {/* §2 — Recent reports */}
-          <div className="bg-white border-t border-[#B8860B]/25">
-            <div className="flex items-center justify-between px-6 lg:px-8 pt-4 pb-1.5">
-              <p className="text-[9px] tracking-[3px] text-[#8B6914] font-semibold uppercase" style={mono}>
-                §{todayReport ? '2' : '1'} — Recent Reports
-              </p>
-              <p className="text-[10px] text-[#9A8F82]">{reports?.length ?? 0} records</p>
-            </div>
-
-            <div>
-              {(reports as Report[] ?? []).map((r, idx) => {
-                const color = statusStyle[r.status] ?? 'text-[#9A8F82]'
-                return (
-                  <div key={r.id} className={`px-6 lg:px-8 py-3.5 ${idx > 0 ? 'border-t border-[#F0EAE0]' : ''}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[11px] text-[#9A8F82] flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(r.report_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      </p>
-                      <span className={`text-[11px] font-medium capitalize ${color}`}>{r.status.replace('_', ' ')}</span>
-                    </div>
-                    <p className="text-[14px] text-[#1C1712] mb-1.5" style={serif}>{r.task_description}</p>
-                    {(r.project_name || r.hours_spent) && (
-                      <div className="flex items-center gap-4 text-[11px] text-[#9A8F82]">
-                        {r.project_name && (
-                          <span className="flex items-center gap-1"><Folder className="w-3 h-3" /> {r.project_name}</span>
-                        )}
-                        {r.hours_spent && (
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {r.hours_spent}h</span>
-                        )}
-                      </div>
+            {todayReport ? (
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
+                <span aria-hidden className="absolute bottom-0 left-0 top-0 w-1.5 bg-emerald-500" />
+                <div className="mb-3 flex items-center justify-between gap-3 pl-1">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Submitted today
+                  </span>
+                </div>
+                <p className="pl-1 text-base leading-relaxed text-[#1C1712]" style={serif}>
+                  {todayReport.task_description}
+                </p>
+                {(todayReport.project_name || todayReport.hours_spent) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 pl-1">
+                    {todayReport.project_name && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                        <Folder className="h-3.5 w-3.5" /> {todayReport.project_name}
+                      </span>
                     )}
-                    {r.manager_comment && (
-                      <p className="text-[11px] text-blue-600 mt-1.5 flex items-center gap-1.5">
-                        <MessageSquare className="w-3 h-3" /> {r.manager_comment}
-                      </p>
+                    {todayReport.hours_spent && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                        <Clock3 className="h-3.5 w-3.5" /> {todayReport.hours_spent}h spent
+                      </span>
                     )}
                   </div>
-                )
-              })}
-
-              {!reports?.length && (
-                <div className="py-10 text-center px-6">
-                  <p className="text-[#9A8F82] text-sm">No reports submitted yet</p>
-                  <p className="text-[#B8B0A0] text-xs mt-1">Submit your first report above</p>
+                )}
+                {todayReport.manager_comment && (
+                  <div className="mt-4 flex items-start gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-sm text-blue-700">
+                    <MessageSquare className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <p><span className="font-medium">Manager:</span> {todayReport.manager_comment}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-4">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <Clock3 className="h-4 w-4" />
                 </div>
-              )}
-            </div>
-          </div>
+                <div>
+                  <p className="text-sm font-medium text-[#1C1712]">Today&apos;s report isn&apos;t submitted yet</p>
+                  <p className="mt-0.5 text-sm text-[#7A6E60]">Use Submit report at the top to log what you worked on.</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Stats */}
+          {list.length > 0 && (
+            <section className="border-t border-[#B8860B]/25 bg-white px-6 py-4 lg:px-8">
+              <div className="grid grid-cols-3 gap-3">
+                {stats.map(({ label, value, Icon, tone }) => (
+                  <div key={label} className="flex items-center gap-2.5 rounded-xl bg-[#FAF7F2] px-3 py-2.5">
+                    <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${tone}`}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-lg font-semibold leading-none tabular-nums text-[#1C1712]" style={serif}>{value}</p>
+                      <p className="mt-1 truncate text-xs text-[#9A8F82]">{label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Recent reports: latest 5, search for the rest */}
+          <ReportsList reports={list} />
 
         </div>
       </div>
