@@ -27,18 +27,18 @@ const ROSTER_START = '09:30'
 const ROSTER_END   = '18:30'
 const ROSTER_MINS  = 9 * 60
 
-// Summary tiles — dot is the status colour, same colour is used on the calendar boxes
+// Summary legend — `bar` is the status colour, reused in the distribution bar and the calendar dots
 const STAT_TABS = [
-  { key: 'present',     label: 'Login',    dot: 'bg-emerald-500' },
-  { key: 'half_day',    label: 'Half day', dot: 'bg-amber-500' },
-  { key: 'leave',       label: 'Leave',    dot: 'bg-purple-500' },
-  { key: 'lwp',         label: 'LWP',      dot: 'bg-fuchsia-600' },
-  { key: 'absent',      label: 'Absent',   dot: 'bg-rose-500' },
-  { key: 'short_leave', label: 'S. leave', dot: 'bg-pink-500' },
-  { key: 'short_login', label: 'S. login', dot: 'bg-blue-500' },
+  { key: 'present',     label: 'Login',    bar: 'bg-emerald-500' },
+  { key: 'half_day',    label: 'Half day', bar: 'bg-amber-500' },
+  { key: 'leave',       label: 'Leave',    bar: 'bg-purple-500' },
+  { key: 'lwp',         label: 'LWP',      bar: 'bg-fuchsia-600' },
+  { key: 'absent',      label: 'Absent',   bar: 'bg-rose-500' },
+  { key: 'short_leave', label: 'S. leave', bar: 'bg-pink-500' },
+  { key: 'short_login', label: 'S. login', bar: 'bg-blue-500' },
 ]
 
-// Calendar box colours keyed by status
+// Solid colours keyed by status (popup avatar)
 const STATUS_CELL: Record<string, string> = {
   present:     'bg-emerald-500 text-white',
   half_day:    'bg-amber-500 text-white',
@@ -47,20 +47,21 @@ const STATUS_CELL: Record<string, string> = {
   absent:      'bg-rose-500 text-white',
   short_leave: 'bg-pink-500 text-white',
   short_login: 'bg-blue-500 text-white',
-  holiday:     'bg-stone-200 text-stone-500',
+  holiday:     'bg-slate-200 text-slate-500',
 }
 
-// Pill colours keyed by status, used in the details panel
-const STATUS_PILL: Record<string, string> = {
-  present:     'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  half_day:    'bg-amber-50 text-amber-700 ring-amber-200',
-  leave:       'bg-purple-50 text-purple-700 ring-purple-200',
-  lwp:         'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200',
-  absent:      'bg-rose-50 text-rose-700 ring-rose-200',
-  short_leave: 'bg-pink-50 text-pink-700 ring-pink-200',
-  short_login: 'bg-blue-50 text-blue-700 ring-blue-200',
-  holiday:     'bg-stone-100 text-stone-500 ring-stone-200',
+// Soft calendar cells keyed by status
+const STATUS_SOFT: Record<string, { cell: string; dot: string }> = {
+  present:     { cell: 'bg-emerald-50 text-emerald-700 ring-emerald-200', dot: 'bg-emerald-500' },
+  half_day:    { cell: 'bg-amber-50 text-amber-700 ring-amber-200',       dot: 'bg-amber-500' },
+  leave:       { cell: 'bg-purple-50 text-purple-700 ring-purple-200',    dot: 'bg-purple-500' },
+  lwp:         { cell: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200', dot: 'bg-fuchsia-600' },
+  absent:      { cell: 'bg-rose-50 text-rose-700 ring-rose-200',          dot: 'bg-rose-500' },
+  short_leave: { cell: 'bg-pink-50 text-pink-700 ring-pink-200',          dot: 'bg-pink-500' },
+  short_login: { cell: 'bg-blue-50 text-blue-700 ring-blue-200',          dot: 'bg-blue-500' },
+  holiday:     { cell: 'bg-slate-100 text-slate-400 ring-slate-200',      dot: 'bg-slate-300' },
 }
+const SOFT_FALLBACK = { cell: 'bg-slate-100 text-slate-500 ring-slate-200', dot: 'bg-slate-400' }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -85,7 +86,6 @@ export default function EmployeeAttendancePage() {
   const [leaveApps, setLeaveApps] = useState<LeaveApp[]>([])
   const [loading, setLoading]   = useState(true)
   const [loadError, setLoadError] = useState('')
-  const scrollRef = useRef<HTMLDivElement>(null)
   const requestIdRef = useRef(0)
 
   const now = new Date()
@@ -206,6 +206,7 @@ export default function EmployeeAttendancePage() {
   STAT_TABS.forEach(t => {
     statCounts[t.key] = Object.values(dateMap).filter(v => v.status === t.key).length
   })
+  const statTotal = STAT_TABS.reduce((sum, t) => sum + statCounts[t.key], 0)
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
   // Weekend = Saturday & Sunday (both treated as default holiday below)
@@ -249,14 +250,28 @@ export default function EmployeeAttendancePage() {
   })
   const selected = cells.find(c => c.dateStr === selectedDay && !c.future) ?? null
 
+  // Attendance rate: full-credit for present / short login / short leave, half for half day.
+  // Holidays, future days and approved leave are not counted against the employee.
+  const countableDays = cells.filter(c => !c.future && c.status !== 'holiday' && c.status !== 'leave')
+  const attendedScore = countableDays.reduce((sum, c) => {
+    if (c.status === 'present' || c.status === 'short_login' || c.status === 'short_leave') return sum + 1
+    if (c.status === 'half_day') return sum + 0.5
+    return sum
+  }, 0)
+  const attendanceRate = countableDays.length > 0
+    ? Math.min(100, Math.round((attendedScore / countableDays.length) * 100))
+    : 0
+  const ringRadius = 46
+  const ringCircumference = 2 * Math.PI * ringRadius
+
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-[#F8F4EA]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+    <div className="flex h-screen items-center justify-center bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white">
+      <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-indigo-500 border-t-transparent" />
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#F8F4EA]">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white">
       <style>{`
         @keyframes att-backdrop-in { from { opacity: 0 } to { opacity: 1 } }
         @keyframes att-sheet-in {
@@ -269,22 +284,6 @@ export default function EmployeeAttendancePage() {
       `}</style>
 
       <div className="mx-auto max-w-2xl px-4 pb-28 pt-5">
-
-        {/* Header */}
-        <div className="mb-5">
-          <Link
-            href="/employee"
-            className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#E6DECF] bg-white/70 px-3 py-1.5 text-xs font-medium text-[#7A6E60] transition hover:bg-white hover:text-[#1C1712] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/25"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
-          </Link>
-          <div className="flex items-end justify-between gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-[#1C1712]">My attendance</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-              <Clock3 className="h-3.5 w-3.5" /> {ROSTER_START} – {ROSTER_END}
-            </span>
-          </div>
-        </div>
 
         {loadError && (
           <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -300,104 +299,171 @@ export default function EmployeeAttendancePage() {
           </div>
         )}
 
-        {/* Month nav */}
-        <div className="mx-auto mb-4 flex w-fit items-center rounded-full border border-[#E6DECF] bg-white p-1 shadow-sm">
-          <button
-            onClick={goPrevMonth}
-            aria-label="Previous month"
-            className="rounded-full p-2 text-[#7A6E60] transition hover:bg-amber-50 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/25"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <p className="w-36 text-center text-sm font-semibold text-[#1C1712]">{monthName} {viewYear}</p>
-          <button
-            onClick={goNextMonth}
-            disabled={isCurrentMonth}
-            aria-label="Next month"
-            className="rounded-full p-2 text-[#7A6E60] transition hover:bg-amber-50 hover:text-amber-700 disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-[#7A6E60] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/25"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        {/* ── HERO: title, month switcher, attendance rate, today ── */}
+        <section className="relative isolate mb-5 overflow-hidden rounded-3xl bg-slate-900 p-5 text-white shadow-xl sm:p-6">
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
+              backgroundSize: '18px 18px',
+            }}
+          />
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 -z-10 h-56 w-56 rounded-full bg-indigo-500/30 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-20 left-6 -z-10 h-48 w-48 rounded-full bg-emerald-500/20 blur-3xl" />
 
-        {/* Summary tiles — scrollable */}
-        <div ref={scrollRef} className="-mx-4 mb-5 flex gap-2.5 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: 'none' }}>
-          {STAT_TABS.map(t => (
-            <div
-              key={t.key}
-              className="min-w-[84px] flex-shrink-0 rounded-2xl border border-[#E6DECF] bg-white px-3.5 py-3 shadow-sm"
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/employee"
+              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-100 ring-1 ring-white/15 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
             >
-              <div className="flex items-center gap-1.5">
-                <span className={`h-2 w-2 rounded-full ${t.dot}`} />
-                <span className="whitespace-nowrap text-xs text-[#7A6E60]">{t.label}</span>
-              </div>
-              <p className="mt-1.5 text-2xl font-semibold tabular-nums leading-none text-[#1C1712]">
-                {statCounts[t.key]}
-              </p>
-            </div>
-          ))}
-        </div>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </Link>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-indigo-100 ring-1 ring-white/15">
+              <Clock3 className="h-3.5 w-3.5" /> {ROSTER_START} – {ROSTER_END}
+            </span>
+          </div>
 
-        {/* Today card */}
-        <div className="relative mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-[#2B2118] to-[#1C1712] p-5 text-white shadow-lg shadow-amber-900/10">
-          <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/25 blur-3xl" />
-          <div className="relative">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-amber-200">
-                <CalendarDays className="h-3.5 w-3.5" /> Today
-              </span>
-              <p className="text-sm font-medium text-white/80">
-                {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </p>
-            </div>
+          <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-300">Employee Portal</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">My attendance</h1>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-white/[0.07] p-3.5">
-                <p className="flex items-center gap-1.5 text-xs text-emerald-300">
-                  <LogIn className="h-3.5 w-3.5" /> Punch in
-                </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums">{fmtTime(todayRec?.checkIn)}</p>
-              </div>
-              <div className="rounded-2xl bg-white/[0.07] p-3.5">
-                <p className="flex items-center gap-1.5 text-xs text-rose-300">
-                  <LogOut className="h-3.5 w-3.5" /> Punch out
-                </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums">{fmtTime(todayRec?.checkOut)}</p>
-              </div>
-            </div>
+          {/* Month nav */}
+          <div className="mt-4 inline-flex items-center rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur">
+            <button
+              onClick={goPrevMonth}
+              aria-label="Previous month"
+              className="rounded-full p-2 text-slate-200 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <p className="w-36 text-center text-sm font-semibold">{monthName} {viewYear}</p>
+            <button
+              onClick={goNextMonth}
+              disabled={isCurrentMonth}
+              aria-label="Next month"
+              className="rounded-full p-2 text-slate-200 transition hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
 
-            <div className="mt-4">
-              <div className="mb-1.5 flex items-baseline justify-between text-xs text-white/60">
-                <span>Working hours</span>
-                <span>
-                  <span className="text-sm font-semibold tabular-nums text-white">
-                    {calcWorkingHrs(todayRec?.checkIn, todayRec?.checkOut)}
-                  </span>{' '}
-                  of 09:00
-                </span>
-              </div>
-              <div
-                className="h-2 overflow-hidden rounded-full bg-white/10"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={todayProgress}
-                aria-label="Working hours completed today"
-              >
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-300 transition-[width] duration-700"
-                  style={{ width: `${todayProgress}%` }}
+          {/* Attendance rate ring */}
+          <div className="mt-5 flex items-center gap-4 rounded-2xl bg-white/[0.07] p-4 ring-1 ring-white/10 backdrop-blur">
+            <div className="relative h-24 w-24 flex-shrink-0">
+              <svg viewBox="0 0 110 110" className="h-full w-full -rotate-90">
+                <circle cx="55" cy="55" r={ringRadius} fill="none" strokeWidth="10" className="stroke-white/15" />
+                <circle
+                  cx="55" cy="55" r={ringRadius} fill="none" strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={`${(attendanceRate / 100) * ringCircumference} ${ringCircumference}`}
+                  className="stroke-emerald-400 transition-all duration-700"
                 />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-xl font-extrabold tabular-nums">{attendanceRate}%</span>
               </div>
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Attendance rate</p>
+              <p className="mt-1 text-sm font-semibold">
+                {attendedScore % 1 === 0 ? attendedScore : attendedScore.toFixed(1)} of {countableDays.length} working days
+              </p>
+              <p className="mt-0.5 text-xs text-slate-300">Holidays, leave and future days not counted</p>
             </div>
           </div>
-        </div>
 
-        {/* Calendar */}
-        <div className="rounded-3xl border border-[#E6DECF] bg-white p-3 shadow-sm sm:p-4">
+          {/* Today (current month only) */}
+          {isCurrentMonth && (
+            <div className="mt-4">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-indigo-200">
+                  <CalendarDays className="h-3.5 w-3.5" /> Today
+                </span>
+                <p className="text-sm font-medium text-white/80">
+                  {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-white/[0.07] p-3.5 ring-1 ring-white/10">
+                  <p className="flex items-center gap-1.5 text-xs text-emerald-300">
+                    <LogIn className="h-3.5 w-3.5" /> Punch in
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums">{fmtTime(todayRec?.checkIn)}</p>
+                </div>
+                <div className="rounded-2xl bg-white/[0.07] p-3.5 ring-1 ring-white/10">
+                  <p className="flex items-center gap-1.5 text-xs text-rose-300">
+                    <LogOut className="h-3.5 w-3.5" /> Punch out
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums">{fmtTime(todayRec?.checkOut)}</p>
+                </div>
+              </div>
+
+              <div className="mt-3.5">
+                <div className="mb-1.5 flex items-baseline justify-between text-xs text-white/60">
+                  <span>Working hours</span>
+                  <span>
+                    <span className="text-sm font-semibold tabular-nums text-white">
+                      {calcWorkingHrs(todayRec?.checkIn, todayRec?.checkOut)}
+                    </span>{' '}
+                    of 09:00
+                  </span>
+                </div>
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-white/10"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={todayProgress}
+                  aria-label="Working hours completed today"
+                >
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-400 via-blue-400 to-emerald-300 transition-[width] duration-700"
+                    style={{ width: `${todayProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ── MONTH SUMMARY: distribution bar + legend ── */}
+        <section className="mb-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900">Month summary</h2>
+            <span className="text-xs font-medium text-slate-400">{statTotal} recorded day{statTotal === 1 ? '' : 's'}</span>
+          </div>
+
+          <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-slate-100">
+            {statTotal > 0 && STAT_TABS.filter(t => statCounts[t.key] > 0).map(t => (
+              <div
+                key={t.key}
+                className={`${t.bar} h-full`}
+                style={{ width: `${(statCounts[t.key] / statTotal) * 100}%` }}
+                title={`${t.label}: ${statCounts[t.key]}`}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {STAT_TABS.map(t => (
+              <div key={t.key} className="rounded-2xl bg-slate-50 px-2 py-2.5 text-center ring-1 ring-slate-100">
+                <p className="text-xl font-extrabold tabular-nums leading-none text-slate-900">{statCounts[t.key]}</p>
+                <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] font-semibold text-slate-500">
+                  <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${t.bar}`} />
+                  <span className="truncate">{t.label}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── CALENDAR ── */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
           <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
             {WEEKDAYS.map(w => (
-              <p key={w} className="text-center text-xs font-medium text-[#9A8F82]">{w}</p>
+              <p key={w} className="text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">{w}</p>
             ))}
           </div>
 
@@ -414,118 +480,145 @@ export default function EmployeeAttendancePage() {
                   <div
                     key={c.dateStr}
                     aria-hidden
-                    className="flex aspect-square items-center justify-center rounded-xl border border-dashed border-[#E6DECF] text-sm tabular-nums text-[#CFC6B6]"
+                    className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm tabular-nums text-slate-300"
                   >
                     {c.day}
                   </div>
                 )
               }
+              const soft = STATUS_SOFT[c.status] ?? SOFT_FALLBACK
               return (
                 <button
                   key={c.dateStr}
                   onClick={() => setSelectedDay(c.dateStr)}
                   aria-haspopup="dialog"
                   aria-label={`${c.dayName} ${c.fullLabel}, ${c.status.replace(/_/g, ' ')}`}
-                  className={`relative flex aspect-square items-center justify-center rounded-xl text-sm font-semibold tabular-nums transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
-                    STATUS_CELL[c.status] ?? 'bg-stone-200 text-stone-600'
-                  } ${
+                  className={`relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-2xl text-sm font-bold tabular-nums ring-1 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${soft.cell} ${
                     isSelected
-                      ? 'ring-2 ring-[#1C1712] ring-offset-2 ring-offset-white'
+                      ? '!ring-2 !ring-slate-900 ring-offset-2 ring-offset-white'
                       : isToday
-                        ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-white'
+                        ? '!ring-2 !ring-indigo-500 ring-offset-2 ring-offset-white'
                         : ''
                   }`}
                 >
                   {c.day}
-                  {isToday && (
-                    <span aria-hidden className="absolute bottom-1 h-1 w-1 rounded-full bg-current opacity-80" />
-                  )}
+                  <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${soft.dot}`} />
                 </button>
               )
             })}
           </div>
-        </div>
+        </section>
 
-        {/* Details popup */}
+        {/* ── DETAILS POPUP ── */}
         {selected && (
           <div
-            className="att-backdrop fixed inset-0 z-[100] flex items-end justify-center bg-[#1C1712]/60 backdrop-blur-sm sm:items-center sm:px-4"
+            className="att-backdrop fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/60 backdrop-blur-sm sm:items-center sm:px-4"
             onMouseDown={e => { if (e.target === e.currentTarget) setSelectedDay(null) }}
           >
             <div
               role="dialog"
               aria-modal="true"
               aria-labelledby="att-dialog-title"
-              className="att-sheet w-full max-w-md overflow-hidden rounded-t-3xl border border-[#E6DECF] bg-[#FEFCF8] shadow-2xl sm:rounded-3xl"
+              className="att-sheet w-full max-w-md overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
             >
               {/* Header */}
-              <div className="flex items-start gap-3.5 border-b border-[#EFE8D9] bg-gradient-to-br from-amber-100/70 via-[#FEFCF8] to-[#FEFCF8] px-5 pb-4 pt-5">
-                <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-2xl font-semibold tabular-nums ${STATUS_CELL[selected.status] ?? 'bg-stone-200 text-stone-600'}`}>
-                  {selected.day}
+              <div className="relative isolate overflow-hidden bg-slate-900 px-5 pb-5 pt-5 text-white">
+                <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -z-10"
+                  style={{
+                    backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
+                  }}
+                />
+                <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 -z-10 h-36 w-36 rounded-full bg-indigo-500/30 blur-3xl" />
+
+                <div className="flex items-start gap-3.5">
+                  <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-2xl font-extrabold tabular-nums shadow-lg ${STATUS_CELL[selected.status] ?? 'bg-slate-200 text-slate-600'}`}>
+                    {selected.day}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 id="att-dialog-title" className="text-lg font-bold tracking-tight">
+                      {selected.dayName}
+                    </h2>
+                    <p className="text-sm text-slate-300">
+                      {selected.fullLabel} {viewYear}
+                      {selected.dateStr === todayStr && <span className="ml-2 text-xs font-semibold text-emerald-300">Today</span>}
+                    </p>
+                    <span className="mt-2 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset ring-white/25">
+                      {selected.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDay(null)}
+                    aria-label="Close"
+                    autoFocus
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-slate-200 ring-1 ring-white/15 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h2 id="att-dialog-title" className="text-lg font-semibold tracking-tight text-[#1C1712]">
-                    {selected.dayName}
-                  </h2>
-                  <p className="text-sm text-[#7A6E60]">
-                    {selected.fullLabel} {viewYear}
-                    {selected.dateStr === todayStr && <span className="ml-2 text-xs font-medium text-amber-700">Today</span>}
-                  </p>
-                  <span className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ring-1 ring-inset ${STATUS_PILL[selected.status] ?? 'bg-stone-100 text-stone-500 ring-stone-200'}`}>
-                    {selected.status.replace(/_/g, ' ')}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSelectedDay(null)}
-                  aria-label="Close"
-                  autoFocus
-                  className="-mr-2 -mt-1 rounded-full p-2 text-[#9A8F82] transition hover:bg-black/5 hover:text-[#1C1712] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/30"
-                >
-                  <X className="h-5 w-5" />
-                </button>
               </div>
 
               {/* Body */}
               <div className="px-5 pb-6 pt-4">
                 <div className="grid grid-cols-3 gap-2.5">
-                  <div className="rounded-2xl bg-[#FAF6EC] p-3">
-                    <p className="flex items-center gap-1 text-xs text-emerald-700">
-                      <LogIn className="h-3.5 w-3.5" /> Punch in
+                  <div className="rounded-2xl bg-emerald-50 p-3 ring-1 ring-emerald-100">
+                    <p className="flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                      <LogIn className="h-3.5 w-3.5" /> In
                     </p>
-                    <p className="mt-1 text-base font-semibold tabular-nums text-[#1C1712]">{fmtTime(selected.checkIn)}</p>
+                    <p className="mt-1 text-base font-bold tabular-nums text-slate-900">{fmtTime(selected.checkIn)}</p>
                   </div>
-                  <div className="rounded-2xl bg-[#FAF6EC] p-3">
-                    <p className="flex items-center gap-1 text-xs text-rose-600">
-                      <LogOut className="h-3.5 w-3.5" /> Punch out
+                  <div className="rounded-2xl bg-rose-50 p-3 ring-1 ring-rose-100">
+                    <p className="flex items-center gap-1 text-xs font-semibold text-rose-600">
+                      <LogOut className="h-3.5 w-3.5" /> Out
                     </p>
-                    <p className="mt-1 text-base font-semibold tabular-nums text-[#1C1712]">{fmtTime(selected.checkOut)}</p>
+                    <p className="mt-1 text-base font-bold tabular-nums text-slate-900">{fmtTime(selected.checkOut)}</p>
                   </div>
-                  <div className="rounded-2xl bg-[#FAF6EC] p-3">
-                    <p className="flex items-center gap-1 text-xs text-amber-700">
+                  <div className="rounded-2xl bg-indigo-50 p-3 ring-1 ring-indigo-100">
+                    <p className="flex items-center gap-1 text-xs font-semibold text-indigo-700">
                       <Hourglass className="h-3.5 w-3.5" /> Hours
                     </p>
-                    <p className="mt-1 text-base font-semibold tabular-nums text-[#1C1712]">
+                    <p className="mt-1 text-base font-bold tabular-nums text-slate-900">
                       {calcWorkingHrs(selected.checkIn, selected.checkOut)}
                     </p>
                   </div>
                 </div>
 
+                {selected.checkIn && selected.checkOut && (
+                  <div className="mt-4">
+                    <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-500">
+                      <span>Roster {ROSTER_START} – {ROSTER_END}</span>
+                      <span>{Math.min(100, Math.round((calcWorkingMins(selected.checkIn, selected.checkOut) / ROSTER_MINS) * 100))}% of 09:00</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400"
+                        style={{ width: `${Math.min(100, (calcWorkingMins(selected.checkIn, selected.checkOut) / ROSTER_MINS) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {!selected.checkIn && !selected.checkOut && (
-                  <p className="mt-3 text-sm text-[#9A8F82]">No punch recorded for this day.</p>
+                  <p className="mt-4 rounded-2xl border border-dashed border-slate-200 py-3 text-center text-sm text-slate-400">
+                    No punch recorded for this day.
+                  </p>
                 )}
 
                 {(selected.checkInAddr || selected.checkOutAddr) && (
-                  <div className="mt-4 space-y-2 border-t border-[#F1EBDD] pt-4">
+                  <div className="mt-4 space-y-2">
                     {selected.checkInAddr && (
-                      <p className="flex items-start gap-1.5 text-xs text-[#7A6E60]">
+                      <p className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-snug text-slate-600 ring-1 ring-slate-100">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
-                        <span>In: {selected.checkInAddr}</span>
+                        <span className="break-words">In: {selected.checkInAddr}</span>
                       </p>
                     )}
                     {selected.checkOutAddr && (
-                      <p className="flex items-start gap-1.5 text-xs text-[#7A6E60]">
+                      <p className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-snug text-slate-600 ring-1 ring-slate-100">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-500" />
-                        <span>Out: {selected.checkOutAddr}</span>
+                        <span className="break-words">Out: {selected.checkOutAddr}</span>
                       </p>
                     )}
                   </div>
@@ -535,7 +628,7 @@ export default function EmployeeAttendancePage() {
           </div>
         )}
 
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[#9A8F82]">
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate-400">
           <MousePointerClick className="h-3.5 w-3.5" /> Tap a date to see its punch details
         </p>
       </div>
