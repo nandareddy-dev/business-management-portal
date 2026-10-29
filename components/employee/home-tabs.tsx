@@ -1,151 +1,194 @@
 'use client'
 
 import { useState } from 'react'
-import { Gift, Target, HeartHandshake, Cake, Trophy, Quote } from 'lucide-react'
+import {
+  Cake,
+  CalendarDays,
+  ClipboardList,
+  Megaphone,
+  Quote,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
 
-type TabKey = 'communication' | 'offers' | 'life'
+type TabKey = 'communication' | 'life'
 
 interface Announcement {
+  icon: LucideIcon
+  category: string
   title: string
   body: string
   time: string
   urgent?: boolean
 }
 
-interface Offer {
-  icon: typeof Gift
-  title: string
-  body: string
-  color: 'emerald' | 'purple' | 'amber'
-}
-
-// Static content — move to a Supabase table (announcements / offers) later if you want these admin-editable.
+// Static content — move to a Supabase table (announcements) later if you want these admin-editable.
 const ANNOUNCEMENTS: Announcement[] = [
-  { title: 'Independence Day holiday', body: 'Office closed on 15th Aug. Regular working resumes 17th.', time: '2h ago', urgent: true },
-  { title: 'Weekly team sync', body: 'Friday 4pm, conference room. All CREs required.', time: '1d ago' },
-  { title: 'New attendance policy', body: 'Geofence check-in now mandatory within 200m of office.', time: '3d ago' },
-]
-
-const OFFERS: Offer[] = [
-  { icon: Gift, title: 'Referral bonus', body: '₹5,000 for every successful hire referral. Valid till Aug 31.', color: 'emerald' },
-  { icon: Target, title: 'Performance incentive', body: 'Hit monthly target, get 10% bonus on base salary.', color: 'purple' },
-  { icon: HeartHandshake, title: 'Health checkup', body: 'Free annual health checkup at partner clinic — book via HR.', color: 'amber' },
+  {
+    icon: CalendarDays,
+    category: 'Holiday',
+    title: 'Diwali holiday notice',
+    body: 'Office will be closed for Diwali. HR will confirm the exact dates and the day regular work resumes.',
+    time: '2h ago',
+    urgent: true,
+  },
+  {
+    icon: Wallet,
+    category: 'Payroll',
+    title: 'Salary slips are live',
+    body: 'Your latest salary slip is now available. Open Menu → Salary Slips to view or search any month.',
+    time: '1d ago',
+  },
+  {
+    icon: ClipboardList,
+    category: 'Reminder',
+    title: 'Submit your daily work report',
+    body: 'Please submit your work report before you check out each day so attendance and reports stay in sync.',
+    time: '2d ago',
+  },
+  {
+    icon: ShieldCheck,
+    category: 'Policy',
+    title: 'Geofence check-in is mandatory',
+    body: 'Check-in is allowed only within 200m of the office location. Enable location access on your phone.',
+    time: '3d ago',
+  },
 ]
 
 const QUOTE_OF_THE_DAY = "Great work isn't done alone. It's built one small win at a time, together."
 
-const colorMap = {
-  emerald: { bg: 'bg-emerald-50', icon: 'text-emerald-600', title: 'text-emerald-700', body: 'text-emerald-600' },
-  purple:  { bg: 'bg-purple-50',  icon: 'text-purple-600',  title: 'text-purple-700',  body: 'text-purple-600' },
-  amber:   { bg: 'bg-amber-50',   icon: 'text-amber-600',   title: 'text-amber-700',   body: 'text-amber-600' },
-}
-
 export function HomeTabs() {
   const [tab, setTab] = useState<TabKey>('communication')
 
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: 'communication', label: 'Communication' },
-    { key: 'offers', label: 'Offers' },
-    { key: 'life', label: 'Life at GK' },
+  const tabs: { key: TabKey; label: string; icon: LucideIcon; count?: number }[] = [
+    { key: 'communication', label: 'Communication', icon: Megaphone, count: ANNOUNCEMENTS.length },
+    { key: 'life', label: 'Life at GK', icon: Sparkles },
   ]
 
   return (
-    <div className="bg-white">
-      <div className="flex gap-6 px-6 border-b border-gray-100">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`py-3 text-sm transition-colors border-b-2 ${
-              tab === t.key
-                ? 'border-blue-600 text-gray-900 font-medium'
-                : 'border-transparent text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+    <div className="bg-white px-4 pb-5 pt-4 sm:px-5">
+      {/* Segmented tabs */}
+      <div role="tablist" className="mb-4 grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1">
+        {tabs.map((t) => {
+          const active = tab === t.key
+          const Icon = t.icon
+
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:text-sm ${
+                active
+                  ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Icon size={15} className={active ? 'text-indigo-600' : 'text-slate-400'} />
+              <span className="truncate">{t.label}</span>
+              {t.count !== undefined && t.count > 0 && (
+                <span
+                  className={`rounded-full px-1.5 text-[10px] font-bold ${
+                    active ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-500'
+                  }`}
+                >
+                  {t.count}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
-      <div className="px-6 py-4">
-        {tab === 'communication' && (
-          <div className="divide-y divide-gray-100">
-            {ANNOUNCEMENTS.length === 0 ? (
-              <EmptyState label="No communication yet" />
-            ) : (
-              ANNOUNCEMENTS.map((a, i) => (
-                <div key={i} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${a.urgent ? 'bg-rose-500' : 'bg-gray-300'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline gap-2">
-                      <p className="text-sm font-medium text-gray-900">{a.title}</p>
-                      <span className="text-xs text-gray-400 flex-shrink-0">{a.time}</span>
+      {tab === 'communication' && (
+        <div className="space-y-2.5">
+          {ANNOUNCEMENTS.length === 0 ? (
+            <EmptyState label="No communication yet" />
+          ) : (
+            ANNOUNCEMENTS.map((a, i) => {
+              const Icon = a.icon
+
+              return (
+                <div
+                  key={i}
+                  className={`flex gap-3 rounded-2xl p-3.5 ring-1 ${
+                    a.urgent ? 'bg-rose-50/70 ring-rose-100' : 'bg-slate-50 ring-slate-100'
+                  }`}
+                >
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                      a.urgent ? 'bg-rose-100 text-rose-600' : 'bg-white text-indigo-500 ring-1 ring-slate-200'
+                    }`}
+                  >
+                    <Icon size={18} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                          a.urgent ? 'bg-rose-100 text-rose-700' : 'bg-indigo-50 text-indigo-700'
+                        }`}
+                      >
+                        {a.category}
+                      </span>
+                      <span className="shrink-0 text-[11px] font-medium text-slate-400">{a.time}</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{a.body}</p>
+
+                    <p className="text-sm font-semibold text-slate-900">{a.title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{a.body}</p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              )
+            })
+          )}
+        </div>
+      )}
 
-        {tab === 'offers' && (
-          <div className="space-y-3">
-            {OFFERS.length === 0 ? (
-              <EmptyState label="No offers yet" />
-            ) : (
-              OFFERS.map((o, i) => {
-                const c = colorMap[o.color]
-                const Icon = o.icon
-                return (
-                  <div key={i} className={`rounded-xl p-3.5 ${c.bg}`}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Icon className={`w-4 h-4 ${c.icon}`} />
-                      <p className={`text-sm font-medium ${c.title}`}>{o.title}</p>
-                    </div>
-                    <p className={`text-xs ${c.body}`}>{o.body}</p>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        )}
+      {tab === 'life' && (
+        <div className="space-y-3">
+          <div className="relative isolate overflow-hidden rounded-2xl bg-slate-900 p-4 text-white">
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-600 via-blue-700 to-slate-900" />
+            <Quote size={56} className="pointer-events-none absolute -right-2 -top-2 -z-10 text-white/10" />
 
-        {tab === 'life' && (
-          <div className="space-y-3">
-            <div className="rounded-xl p-4 bg-blue-50">
-              <div className="flex items-start gap-2">
-                <Quote className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-blue-700 italic leading-relaxed">&ldquo;{QUOTE_OF_THE_DAY}&rdquo;</p>
-                  <p className="text-xs text-blue-500 mt-1.5">Quote of the day</p>
-                </div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-200">Quote of the day</p>
+            <p className="mt-2 text-sm font-medium italic leading-relaxed">
+              &ldquo;{QUOTE_OF_THE_DAY}&rdquo;
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-gradient-to-b from-pink-50 to-white p-4 text-center ring-1 ring-pink-100">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 text-pink-600">
+                <Cake size={20} />
               </div>
+              <p className="mt-2 text-xs font-bold text-pink-800">Team birthday</p>
+              <p className="text-[11px] text-pink-600/80">Check calendar</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl p-3.5 bg-emerald-50 text-center">
-                <Cake className="w-5 h-5 text-emerald-600 mx-auto" />
-                <p className="text-xs font-medium text-emerald-700 mt-1.5">Team birthday</p>
-                <p className="text-[11px] text-emerald-500">Check calendar</p>
+
+            <div className="rounded-2xl bg-gradient-to-b from-amber-50 to-white p-4 text-center ring-1 ring-amber-100">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                <Trophy size={20} />
               </div>
-              <div className="rounded-xl p-3.5 bg-purple-50 text-center">
-                <Trophy className="w-5 h-5 text-purple-600 mx-auto" />
-                <p className="text-xs font-medium text-purple-700 mt-1.5">Top performer</p>
-                <p className="text-[11px] text-purple-500">This week</p>
-              </div>
+              <p className="mt-2 text-xs font-bold text-amber-800">Top performer</p>
+              <p className="text-[11px] text-amber-600/80">This week</p>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="py-10 text-center">
-      <p className="text-sm text-gray-400">{label}</p>
-      <p className="text-xs text-gray-300 mt-1">Check back soon</p>
+    <div className="rounded-2xl border border-dashed border-slate-200 py-10 text-center">
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="mt-1 text-xs text-slate-400">Check back soon</p>
     </div>
   )
 }

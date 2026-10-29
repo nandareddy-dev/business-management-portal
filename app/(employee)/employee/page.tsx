@@ -1,12 +1,31 @@
+import type { ReactNode } from 'react'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, ArrowUpRight, LogOut, MapPin, CheckCircle2, Clock3 } from 'lucide-react'
+import {
+  ArrowUpRight,
+  CalendarCheck,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
+  Coffee,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  MapPin,
+  Palmtree,
+  Timer,
+  type LucideIcon,
+} from 'lucide-react'
 import { AttendanceMarkButton } from '@/components/employee/attendance-mark-button'
 import { PunchCard } from '@/components/employee/punch-card'
 import { HomeTabs } from '@/components/employee/home-tabs'
 
 export const dynamic = 'force-dynamic'
+
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                     */
+/* -------------------------------------------------------------------------- */
 
 interface Employee {
   id: string
@@ -42,6 +61,140 @@ interface ActiveBreak {
   start_time: string
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Helpers                                                                   */
+/* -------------------------------------------------------------------------- */
+
+const TZ = 'Asia/Kolkata'
+const WORKDAY_MINUTES = 8 * 60
+
+function getGreeting() {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-IN', { hour: 'numeric', hourCycle: 'h23', timeZone: TZ }).format(new Date())
+  )
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+const fmtTime = (iso?: string | null) =>
+  iso
+    ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: TZ })
+    : null
+
+function workedMinutes(checkIn?: string, checkOut?: string) {
+  if (!checkIn) return 0
+  const end = checkOut ? new Date(checkOut) : new Date()
+  const diff = end.getTime() - new Date(checkIn).getTime()
+  return diff > 0 ? Math.floor(diff / 60000) : 0
+}
+
+const fmtDuration = (minutes: number) => `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
+
+/* -------------------------------------------------------------------------- */
+/*  Presentational components                                                 */
+/* -------------------------------------------------------------------------- */
+
+function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <section className={`rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5 ${className}`}>
+      {children}
+    </section>
+  )
+}
+
+function CardTitle({
+  icon: Icon,
+  tone,
+  title,
+  right,
+}: {
+  icon: LucideIcon
+  tone: string
+  title: string
+  right?: ReactNode
+}) {
+  return (
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}>
+          <Icon size={18} />
+        </div>
+        <h2 className="text-sm font-bold text-slate-900 sm:text-base">{title}</h2>
+      </div>
+      {right}
+    </div>
+  )
+}
+
+function OverviewTile({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  tone: string
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl p-3 ring-1 sm:p-4 ${tone}`}>
+      <Icon size={18} className="mb-2 opacity-80" />
+      <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70 sm:text-[11px]">{label}</p>
+      <p className="mt-0.5 text-sm font-bold capitalize leading-tight sm:text-base">{value}</p>
+    </div>
+  )
+}
+
+function TimelineItem({
+  icon: Icon,
+  title,
+  time,
+  note,
+  dot,
+  last = false,
+}: {
+  icon: LucideIcon
+  title: string
+  time: string | null
+  note?: string | null
+  dot: string | null
+  last?: boolean
+}) {
+  return (
+    <li className="relative flex gap-3 pb-5 last:pb-0">
+      {!last && <span className="absolute left-4 top-9 h-[calc(100%-2rem)] w-px -translate-x-1/2 bg-slate-200" />}
+
+      <span
+        className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+          dot ?? 'bg-slate-100 text-slate-400'
+        }`}
+      >
+        <Icon size={15} />
+      </span>
+
+      <div className="min-w-0 flex-1 pt-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-800">{title}</p>
+          <span className={`text-sm font-bold ${time ? 'text-slate-900' : 'text-slate-300'}`}>{time ?? '--:--'}</span>
+        </div>
+
+        {note && (
+          <p className="mt-1 flex items-start gap-1 text-xs leading-snug text-slate-500">
+            <MapPin size={12} className="mt-0.5 shrink-0 text-slate-400" />
+            <span className="break-words">{note}</span>
+          </p>
+        )}
+      </div>
+    </li>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Page                                                                      */
+/* -------------------------------------------------------------------------- */
+
 export default async function EmployeePortalPage() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -67,12 +220,14 @@ export default async function EmployeePortalPage() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
     if (profile?.role === 'employee') {
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
-            <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Employee Profile Not Found</h2>
-            <p className="text-sm text-gray-500 mb-4">Your account exists but employee profile is missing. Contact your admin.</p>
-            <p className="text-xs text-gray-400">Email: {user.email}</p>
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white px-4">
+          <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">⚠️</div>
+            <h2 className="mb-2 text-lg font-bold text-slate-900">Employee Profile Not Found</h2>
+            <p className="mb-4 text-sm text-slate-500">
+              Your account exists but employee profile is missing. Contact your admin.
+            </p>
+            <p className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">Email: {user.email}</p>
           </div>
         </div>
       )
@@ -114,19 +269,50 @@ export default async function EmployeePortalPage() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
   }
 
-  // Colorful leave-type tiles instead of rings
+  // Leave-type tiles with usage bars
   const leaves = leaveBalance ? [
-    { type: 'CL', label: 'Casual', total: leaveBalance.cl_total, used: leaveBalance.cl_used, bg: 'bg-purple-50', text: 'text-purple-700', sub: 'text-purple-500' },
-    { type: 'SL', label: 'Sick',   total: leaveBalance.sl_total, used: leaveBalance.sl_used, bg: 'bg-blue-50',   text: 'text-blue-700',   sub: 'text-blue-500' },
-    { type: 'EL', label: 'Earned', total: leaveBalance.el_total, used: leaveBalance.el_used, bg: 'bg-emerald-50', text: 'text-emerald-700', sub: 'text-emerald-500' },
+    { type: 'CL', label: 'Casual', total: leaveBalance.cl_total, used: leaveBalance.cl_used, tile: 'from-purple-50 to-white ring-purple-100', text: 'text-purple-700', bar: 'bg-purple-500', track: 'bg-purple-100' },
+    { type: 'SL', label: 'Sick',   total: leaveBalance.sl_total, used: leaveBalance.sl_used, tile: 'from-blue-50 to-white ring-blue-100',     text: 'text-blue-700',   bar: 'bg-blue-500',   track: 'bg-blue-100' },
+    { type: 'EL', label: 'Earned', total: leaveBalance.el_total, used: leaveBalance.el_used, tile: 'from-emerald-50 to-white ring-emerald-100', text: 'text-emerald-700', bar: 'bg-emerald-500', track: 'bg-emerald-100' },
   ] : []
 
-  return (
-    <div className="min-h-screen bg-gray-50 overflow-y-auto">
-      <div className="max-w-2xl mx-auto w-full px-4 py-4">
+  // Derived values for the day view
+  const minutes = workedMinutes(todayAttendance?.check_in, todayAttendance?.check_out)
+  const progress = Math.min(100, (minutes / WORKDAY_MINUTES) * 100)
+  const pendingCount = pendingLeaves?.length ?? 0
+  const firstName = employee.full_name?.split(' ')[0] ?? 'there'
 
-        {/* ── PUNCH CARD (photo, breaks, punch in/out/working hrs) ── */}
-        <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+  const dayState = isCheckedOut ? 'Day completed' : isCheckedIn ? 'Checked in' : 'Not punched in'
+  const dayStateTone = isCheckedOut
+    ? 'bg-slate-100 text-slate-600'
+    : isCheckedIn
+      ? 'bg-emerald-50 text-emerald-700'
+      : 'bg-amber-50 text-amber-700'
+
+  const todayLabel = new Date().toLocaleDateString('en-IN', {
+    weekday: 'short', day: 'numeric', month: 'short', timeZone: TZ,
+  })
+
+  return (
+    <div className="min-h-screen overflow-y-auto bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white">
+      <div className="mx-auto w-full max-w-2xl px-4 py-5">
+
+        {/* ── GREETING ── */}
+        <header className="mb-5 flex items-end justify-between gap-3 px-1">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-500">{getGreeting()} 👋</p>
+            <h1 className="truncate bg-gradient-to-r from-slate-900 via-indigo-800 to-blue-700 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-3xl">
+              {firstName}
+            </h1>
+          </div>
+
+          <span className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
+            {todayLabel}
+          </span>
+        </header>
+
+        {/* ── PUNCH CARD (photo, breaks, punch in/out/working hrs) + TABS ── */}
+        <div className="overflow-hidden rounded-3xl border border-slate-200/80 shadow-lg shadow-indigo-100/60">
           <PunchCard
             employeeId={employee.id}
             fullName={employee.full_name}
@@ -138,29 +324,89 @@ export default async function EmployeePortalPage() {
             activeBreak={activeBreak}
           />
 
-          {/* ── TABS: Communication / Offers / Life at GK ── */}
           <HomeTabs />
         </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-5 space-y-5">
+
+          {/* ── TODAY OVERVIEW ── */}
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+            <OverviewTile
+              icon={CheckCircle2}
+              label="Attendance"
+              value={todayAttendance ? (todayAttendance.status ?? 'Marked') : 'Not marked'}
+              tone={todayAttendance ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-slate-100 text-slate-500 ring-slate-200'}
+            />
+            <OverviewTile
+              icon={ClipboardList}
+              label="Work report"
+              value={todayReport ? 'Submitted' : 'Pending'}
+              tone={todayReport ? 'bg-blue-50 text-blue-700 ring-blue-100' : 'bg-amber-50 text-amber-700 ring-amber-100'}
+            />
+            <OverviewTile
+              icon={Palmtree}
+              label="Leaves"
+              value={pendingCount > 0 ? `${pendingCount} pending` : 'None pending'}
+              tone={pendingCount > 0 ? 'bg-violet-50 text-violet-700 ring-violet-100' : 'bg-slate-100 text-slate-500 ring-slate-200'}
+            />
+          </div>
+
+          {/* ── TODAY'S TIMELINE ── */}
+          <Card>
+            <CardTitle
+              icon={Timer}
+              tone="bg-indigo-50 text-indigo-600"
+              title="Today's progress"
+              right={
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${dayStateTone}`}>{dayState}</span>
+              }
+            />
+
+            <div className="mb-5">
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <p className="text-2xl font-extrabold tracking-tight text-slate-900">{fmtDuration(minutes)}</p>
+                <p className="text-xs font-medium text-slate-400">of 8h target · {Math.round(progress)}%</p>
+              </div>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            <ol>
+              <TimelineItem
+                icon={LogIn}
+                title="Check in"
+                time={fmtTime(todayAttendance?.check_in)}
+                note={checkInAddress}
+                dot={isCheckedIn ? 'bg-emerald-100 text-emerald-700' : null}
+              />
+
+              {activeBreak && (
+                <TimelineItem
+                  icon={Coffee}
+                  title={`On break · ${activeBreak.break_type}`}
+                  time={fmtTime(activeBreak.start_time)}
+                  dot="bg-amber-100 text-amber-700"
+                />
+              )}
+
+              <TimelineItem
+                icon={LogOut}
+                title="Check out"
+                time={fmtTime(todayAttendance?.check_out)}
+                note={checkOutAddress}
+                dot={isCheckedOut ? 'bg-rose-100 text-rose-600' : null}
+                last
+              />
+            </ol>
+          </Card>
 
           {/* ── MARK ATTENDANCE ── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <p className="text-sm font-medium text-gray-500 mb-3">Attendance</p>
-            {(checkInAddress || checkOutAddress) && (
-              <div className="flex flex-wrap gap-x-6 gap-y-1 mb-3">
-                {checkInAddress && (
-                  <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-emerald-600" /> In: {checkInAddress}
-                  </p>
-                )}
-                {checkOutAddress && (
-                  <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-rose-500" /> Out: {checkOutAddress}
-                  </p>
-                )}
-              </div>
-            )}
+          <Card>
+            <CardTitle icon={CalendarCheck} tone="bg-emerald-50 text-emerald-600" title="Mark attendance" />
             <AttendanceMarkButton
               employeeId={employee.id}
               isCheckedIn={isCheckedIn}
@@ -169,81 +415,86 @@ export default async function EmployeePortalPage() {
               checkInTimeISO={todayAttendance?.check_in ?? null}
               checkOutTimeISO={todayAttendance?.check_out ?? null}
             />
-          </div>
+          </Card>
 
-          {/* ── TODAY STATUS (colorful pair) ── */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className={`rounded-2xl p-4 ${todayAttendance ? 'bg-emerald-50' : 'bg-gray-100'}`}>
-              <p className={`text-xs mb-1 ${todayAttendance ? 'text-emerald-600' : 'text-gray-400'}`}>
-                {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </p>
-              <p className={`text-sm font-medium capitalize flex items-center gap-1.5 ${todayAttendance ? 'text-emerald-700' : 'text-gray-500'}`}>
-                <CheckCircle2 className="w-4 h-4" />
-                {todayAttendance ? todayAttendance.status : 'Not marked'}
-              </p>
-            </div>
-            <div className={`rounded-2xl p-4 ${todayReport ? 'bg-blue-50' : 'bg-amber-50'}`}>
-              <p className={`text-xs mb-1 ${todayReport ? 'text-blue-600' : 'text-amber-600'}`}>Work report</p>
-              <p className={`text-sm font-medium flex items-center gap-1.5 ${todayReport ? 'text-blue-700' : 'text-amber-700'}`}>
-                <Clock3 className="w-4 h-4" />
-                {todayReport ? 'Submitted' : 'Pending'}
-              </p>
-            </div>
-          </div>
-
-          {/* ── LEAVE LEDGER (colorful tiles) ── */}
+          {/* ── LEAVE LEDGER ── */}
           {leaveBalance && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-              <div className="flex items-baseline justify-between mb-3">
-                <p className="text-sm font-medium text-gray-500">
-                  Leave ledger — {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-                </p>
-                {((pendingLeaves?.length) ?? 0) > 0 && (
-                  <p className="text-xs text-amber-600 font-medium">{pendingLeaves?.length} pending</p>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-3">
+            <Card>
+              <CardTitle
+                icon={Palmtree}
+                tone="bg-purple-50 text-purple-600"
+                title={`Leave ledger — ${new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: TZ })}`}
+                right={
+                  pendingCount > 0 ? (
+                    <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                      {pendingCount} pending
+                    </span>
+                  ) : undefined
+                }
+              />
+
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                 {leaves.map((l) => {
                   const remaining = l.total - l.used
                   const isNegative = remaining < 0
+                  const usedPct = l.total > 0 ? Math.min(100, (l.used / l.total) * 100) : isNegative ? 100 : 0
+
                   return (
-                    <div key={l.type} className={`rounded-xl p-3 text-center ${isNegative ? 'bg-rose-50' : l.bg}`}>
-                      <p className={`text-lg font-semibold ${isNegative ? 'text-rose-700' : l.text}`}>{remaining}</p>
-                      <p className={`text-xs font-medium mt-0.5 ${isNegative ? 'text-rose-600' : l.text}`}>{l.type}</p>
-                      <p className={`text-[11px] ${isNegative ? 'text-rose-500' : l.sub}`}>{l.used}/{l.total} used</p>
+                    <div
+                      key={l.type}
+                      className={`rounded-2xl bg-gradient-to-b p-3 text-center ring-1 ${
+                        isNegative ? 'from-rose-50 to-white ring-rose-100' : l.tile
+                      }`}
+                    >
+                      <p className={`text-2xl font-extrabold ${isNegative ? 'text-rose-700' : l.text}`}>{remaining}</p>
+                      <p className={`text-xs font-bold ${isNegative ? 'text-rose-600' : l.text}`}>{l.type}</p>
+                      <p className="text-[10px] text-slate-400">{l.label}</p>
+
+                      <div className={`mt-2 h-1.5 w-full overflow-hidden rounded-full ${isNegative ? 'bg-rose-100' : l.track}`}>
+                        <div
+                          className={`h-full rounded-full ${isNegative ? 'bg-rose-500' : l.bar}`}
+                          style={{ width: `${usedPct}%` }}
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] font-medium text-slate-500">{l.used}/{l.total} used</p>
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* ── CRM PORTAL + SIGN OUT ── */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             {hasCRMAccess && (
-              <Link href="/dashboard"
-                className="flex items-center gap-3 px-4 py-3.5 bg-blue-600 hover:bg-blue-700 rounded-2xl transition-colors">
-                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
-                  <LayoutDashboard className="w-4 h-4 text-white" />
+              <Link
+                href="/dashboard"
+                className="group relative isolate flex items-center gap-3 overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-blue-600 to-blue-700 px-4 py-4 shadow-lg shadow-blue-200 transition hover:shadow-xl"
+              >
+                <div className="pointer-events-none absolute -right-8 -top-10 -z-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                  <LayoutDashboard className="h-5 w-5 text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">CRM Portal</p>
-                  <p className="text-xs text-blue-100 truncate">Go to business dashboard</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-white">CRM Portal</p>
+                  <p className="truncate text-xs text-blue-100">Go to business dashboard</p>
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-blue-100 flex-shrink-0" />
+                <ArrowUpRight className="h-5 w-5 shrink-0 text-blue-100 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Link>
             )}
 
             <form action="/api/auth/signout" method="POST">
-              <button type="submit"
-                className="w-full py-3 rounded-2xl border border-gray-200 text-sm text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center gap-2">
-                <LogOut className="w-4 h-4" /> Sign out
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-100 bg-white py-3.5 text-sm font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50"
+              >
+                <LogOut className="h-4 w-4" /> Sign out
               </button>
             </form>
           </div>
         </div>
       </div>
-      <div className="h-20" />
+      <div className="h-24" />
     </div>
   )
 }

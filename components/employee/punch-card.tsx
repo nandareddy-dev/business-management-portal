@@ -1,6 +1,6 @@
 'use client'
 
-import { RefreshCw } from 'lucide-react'
+import { LogIn, LogOut, RefreshCw, Timer, type LucideIcon } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { BreaksWidget } from './breaks-widget'
@@ -16,13 +16,51 @@ interface PunchCardProps {
   activeBreak: { id: string; break_type: string; start_time: string } | null
 }
 
-export function PunchCard({ employeeId, fullName, designation, photoUrl, checkIn, checkOut, workingHrs, activeBreak }: PunchCardProps) {
+const WORKDAY_MINUTES = 8 * 60
+
+function PunchTile({
+  icon: Icon,
+  label,
+  value,
+  iconTone,
+  highlight = false,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  iconTone: string
+  highlight?: boolean
+}) {
+  return (
+    <div
+      className={`rounded-2xl px-2 py-3 text-center ring-1 backdrop-blur sm:px-3 ${
+        highlight ? 'bg-white/15 ring-white/30' : 'bg-white/[0.07] ring-white/10'
+      }`}
+    >
+      <Icon size={15} className={`mx-auto mb-1.5 ${iconTone}`} />
+      <p className="text-base font-bold tabular-nums tracking-tight text-white sm:text-lg">{value}</p>
+      <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-300 sm:text-[10px]">
+        {label}
+      </p>
+    </div>
+  )
+}
+
+export function PunchCard({
+  employeeId,
+  fullName,
+  designation,
+  photoUrl,
+  checkIn,
+  checkOut,
+  workingHrs,
+  activeBreak,
+}: PunchCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [spinning, setSpinning] = useState(false)
 
   const initials = fullName?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() ?? '?'
-  const mono = { fontFamily: 'ui-monospace, "JetBrains Mono", monospace' }
 
   const fmtTime = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '--:--'
@@ -39,68 +77,98 @@ export function PunchCard({ employeeId, fullName, designation, photoUrl, checkIn
   const onBreak = !!activeBreak
 
   const status = !isCheckedIn || isCheckedOut
-    ? { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', label: isCheckedOut ? 'Checked out' : 'Not checked in' }
+    ? { color: '#f87171', bg: 'rgba(248,113,113,0.14)', border: 'rgba(248,113,113,0.4)', label: isCheckedOut ? 'Checked out' : 'Not checked in' }
     : onBreak
-      ? { color: '#eab308', bg: 'rgba(234,179,8,0.12)', border: 'rgba(234,179,8,0.35)', label: 'On break' }
-      : { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.35)', label: 'Working' }
+      ? { color: '#facc15', bg: 'rgba(250,204,21,0.14)', border: 'rgba(250,204,21,0.4)', label: 'On break' }
+      : { color: '#4ade80', bg: 'rgba(74,222,128,0.14)', border: 'rgba(74,222,128,0.4)', label: 'Working' }
+
+  // Progress towards an 8-hour workday, parsed from the "HH:MM" string
+  const [h, m] = workingHrs.split(':').map(Number)
+  const workedMinutes = (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0)
+  const progress = Math.min(100, (workedMinutes / WORKDAY_MINUTES) * 100)
 
   return (
-    <div className="bg-[#1C1712] px-6 py-5 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.05]" style={{
-        backgroundImage: 'linear-gradient(#B8860B 1px, transparent 1px), linear-gradient(90deg, #B8860B 1px, transparent 1px)',
-        backgroundSize: '28px 28px'
-      }} />
-      <div className="relative">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {photoUrl ? (
-              <img src={photoUrl} alt={fullName} className="w-11 h-11 rounded-full object-cover border-2 border-[#B8860B]/40" />
-            ) : (
-              <div className="w-11 h-11 rounded-full border-2 border-[#B8860B]/40 flex items-center justify-center text-[14px] text-[#D4A537]" style={{ fontFamily: 'Georgia, serif' }}>
-                {initials}
-              </div>
-            )}
-            <div>
-              <p className="text-[15px] text-white" style={{ fontFamily: 'Georgia, serif' }}>{fullName}</p>
-              <p className="text-[11px] text-white/40 tracking-wide" style={mono}>{designation ?? 'Employee'}</p>
-            </div>
-          </div>
+    <div className="relative isolate overflow-hidden bg-slate-900 px-4 py-5 text-white sm:px-6 sm:py-6">
+      {/* Background layers */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px)',
+          backgroundSize: '18px 18px',
+        }}
+      />
+      <div className="pointer-events-none absolute -right-16 -top-16 -z-10 h-52 w-52 rounded-full bg-indigo-500/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 left-4 -z-10 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
 
-          <div className="flex items-center gap-2">
-            <span
-              title={status.label}
-              className="text-[10px] font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5"
-              style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color, boxShadow: `0 0 4px ${status.color}` }} />
-              {status.label}
-            </span>
-            <BreaksWidget employeeId={employeeId} activeBreak={activeBreak} />
+      {/* Header: identity + status */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={fullName}
+              className="h-12 w-12 shrink-0 rounded-2xl object-cover ring-2 ring-white/30"
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-base font-bold ring-1 ring-white/25 backdrop-blur">
+              {initials}
+            </div>
+          )}
+
+          <div className="min-w-0">
+            <p className="truncate text-base font-bold leading-tight">{fullName}</p>
+            <p className="truncate text-xs text-slate-300">{designation ?? 'Employee'}</p>
           </div>
         </div>
 
-        <div className="bg-[#FAF7F2] px-4 py-3 flex items-center justify-between relative">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:justify-end">
+          <span
+            title={status.label}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+            style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: status.color, boxShadow: `0 0 6px ${status.color}` }}
+            />
+            {status.label}
+          </span>
+          <BreaksWidget employeeId={employeeId} activeBreak={activeBreak} />
+        </div>
+      </div>
+
+      {/* Punch tiles */}
+      <div className="mt-5">
+        <div className="mb-2.5 flex items-center justify-between px-0.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-300">Today&apos;s punch</p>
           <button
             onClick={handleRefresh}
             disabled={isPending}
-            className="absolute top-2 right-2 text-[#9A8F82] hover:text-[#B8860B] transition-colors"
+            aria-label="Refresh punch details"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-slate-200 ring-1 ring-white/15 transition hover:bg-white/20 disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${spinning ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${spinning ? 'animate-spin' : ''}`} />
           </button>
-          <div className="text-center flex-1">
-            <p className="text-[15px] text-[#1C1712]" style={{ fontFamily: 'Georgia, serif' }}>{fmtTime(checkIn)}</p>
-            <p className="text-[10px] text-[#9A8F82] uppercase tracking-[0.5px] mt-0.5">Punch In</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <PunchTile icon={LogIn} label="Punch in" value={fmtTime(checkIn)} iconTone="text-emerald-300" />
+          <PunchTile icon={LogOut} label="Punch out" value={fmtTime(checkOut)} iconTone="text-rose-300" />
+          <PunchTile icon={Timer} label="Working hrs" value={workingHrs} iconTone="text-sky-300" highlight />
+        </div>
+
+        {/* Workday progress */}
+        <div className="mt-4">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-indigo-400 via-blue-400 to-emerald-300 transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-          <div className="w-px h-8 bg-[#E2D9C8]" />
-          <div className="text-center flex-1">
-            <p className="text-[15px] text-[#1C1712]" style={{ fontFamily: 'Georgia, serif' }}>{fmtTime(checkOut)}</p>
-            <p className="text-[10px] text-[#9A8F82] uppercase tracking-[0.5px] mt-0.5">Punch Out</p>
-          </div>
-          <div className="w-px h-8 bg-[#E2D9C8]" />
-          <div className="text-center flex-1">
-            <p className="text-[15px] text-[#1C1712]" style={{ fontFamily: 'Georgia, serif' }}>{workingHrs}</p>
-            <p className="text-[10px] text-[#9A8F82] uppercase tracking-[0.5px] mt-0.5">Working Hrs</p>
-          </div>
+          <p className="mt-1.5 text-right text-[11px] font-medium text-slate-300">
+            {Math.round(progress)}% of 8h workday
+          </p>
         </div>
       </div>
     </div>
