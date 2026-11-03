@@ -1,3 +1,4 @@
+
 -- Migration: Fix CRE lead isolation (owner_id not being set by claim triggers)
 -- Date: 2026-07-21
 --
