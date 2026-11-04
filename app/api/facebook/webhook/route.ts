@@ -419,8 +419,6 @@ export async function POST(req: NextRequest) {
           leadDetails.field_data || []
         );
 
-        const phoneNormalized = normalizePhone(phoneRaw);
-
         // 11. Validate lead details
 
         if (!leadName && !phoneRaw && !email) {
@@ -455,7 +453,6 @@ export async function POST(req: NextRequest) {
             lead_name: leadName || "Facebook Lead",
 
             phone: phoneRaw,
-            phone_normalized: phoneNormalized,
 
             email,
             city,
