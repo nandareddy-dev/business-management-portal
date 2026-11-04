@@ -183,6 +183,8 @@ function mapFieldData(fieldData: FacebookField[]) {
     "";
 
   const propertyType =
+    map["what_type_of_property_do_you_have?"] ||
+    map["what_type_of_property_do_you_have"] ||
     map["property_type"] ||
     "";
 
@@ -191,6 +193,8 @@ function mapFieldData(fieldData: FacebookField[]) {
     "";
 
   const interest =
+    map["what_interior_services_are_you_looking_for?"] ||
+    map["what_interior_services_are_you_looking_for"] ||
     map["what_type_of_interior_service_are_you_looking_for?"] ||
     map["what_type_of_interior_service_are_you_looking_for"] ||
     "";
