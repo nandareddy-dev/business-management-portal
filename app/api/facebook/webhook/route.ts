@@ -450,6 +450,7 @@ export async function POST(req: NextRequest) {
           .from("leads")
           .insert({
             company_id: COMPANY_ID,
+            industry: "interior-design",
 
             lead_name: leadName || "Facebook Lead",
 
@@ -462,7 +463,7 @@ export async function POST(req: NextRequest) {
             budget,
             interest,
 
-            source: "facebook_ads",
+            source: "Facebook Meta",
 
             status: "New",
             pipeline_stage: "new",
