@@ -16,6 +16,8 @@ interface Lead {
   interest?: string | null
   budget?: string | number | null
   city?: string | null
+  location?: string | null
+  raw_field_data?: Record<string, unknown> | null
   property_type?: string | null
   created_at: string
   [key: string]: unknown
@@ -66,6 +68,14 @@ const INTEREST_CONFIG: Record<string, { bg: string; color: string }> = {
 
 const ini = (name: string) =>
   name?.split(' ').map((x: string) => x[0]).join('').slice(0, 2).toUpperCase() || '?'
+
+// Location: uses the dedicated `location` column if present, otherwise falls
+// back to the answer from the Facebook lead form (raw_field_data.location).
+const getLocation = (l: Lead): string | null => {
+  if (typeof l.location === 'string' && l.location.trim()) return l.location
+  const v = l.raw_field_data?.location
+  return typeof v === 'string' && v.trim() ? v.replace(/_/g, ' ') : null
+}
 
 const LEAD_BASE = '/dashboard/industries/interior-design/leads'
 
@@ -498,7 +508,7 @@ export default function AllLeadsPage() {
             <table className="w-full">
               <thead>
                 <tr style={{ background: '#FAFAF8', borderBottom: '1px solid #F0EBE0' }}>
-                  {['#', 'Lead', 'Phone', 'Stage', 'Source', 'Interest', 'Budget', 'City', 'Date'].map(h => (
+                  {['#', 'Lead', 'Phone', 'Stage', 'Source', 'Interest', 'Budget', 'City', 'Location', 'Date'].map(h => (
                     <th key={h} className="text-left text-[9px] font-black text-[#9A8F82] uppercase tracking-[2px] px-4 py-3 whitespace-nowrap first:pl-5 last:pr-5">{h}</th>
                   ))}
                 </tr>
@@ -551,6 +561,9 @@ export default function AllLeadsPage() {
                       <td className="px-4 py-3.5">
                         {l.city ? <span className="text-[10px] text-[#7A6E60]">📍 {l.city}</span> : <span className="text-[#C4BAB0]">—</span>}
                       </td>
+                      <td className="px-4 py-3.5">
+                        {getLocation(l) ? <span className="text-[10px] text-[#7A6E60]">🗺️ {getLocation(l)}</span> : <span className="text-[#C4BAB0]">—</span>}
+                      </td>
                       <td className="px-4 py-3.5 pr-5">
                         <p className="text-[10px] text-[#B8B0A0] whitespace-nowrap">
                           {new Date(l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -593,6 +606,7 @@ export default function AllLeadsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-1.5">
                         {l.city && <span className="text-[9px] text-[#7A6E60]">📍 {l.city}</span>}
+                        {getLocation(l) && <span className="text-[9px] text-[#7A6E60]">🗺️ {getLocation(l)}</span>}
                         <span className="text-[9px] text-[#B8B0A0]">
                           {new Date(l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>

@@ -22,10 +22,19 @@ interface Lead {
   property_type?: string
   company_id: string
   industry: string
+  raw_field_data?: Record<string, unknown> | null
 }
 
 interface LeadWithDate extends Lead {
   date: string | null
+  location: string | null
+}
+
+// Location comes from the Facebook lead form answer (raw_field_data.location).
+// Manual leads have no raw_field_data, so they show "—" in the table.
+const getLocation = (l: Lead): string | null => {
+  const v = l.raw_field_data?.location
+  return typeof v === 'string' && v.trim() ? v.replace(/_/g, ' ') : null
 }
 
 interface Activity {
@@ -77,7 +86,7 @@ export default async function FollowUpPage() {
     supabase,
     profile.company_id,
     'interior-design',
-    'id, lead_name, phone, email, source, budget, city, interest, notes, created_at, pipeline_stage, property_type, company_id, industry'
+    'id, lead_name, phone, email, source, budget, city, interest, notes, created_at, pipeline_stage, property_type, company_id, industry, raw_field_data'
   )
 
   // ── THE FIX ──
@@ -113,6 +122,7 @@ export default async function FollowUpPage() {
     .map((l): LeadWithDate => ({
       ...l,
       date: leadActivityMap.get(l.id) || null,
+      location: getLocation(l),
     }))
     .sort((a, b) => {
       if (!a.date && !b.date) return 0
