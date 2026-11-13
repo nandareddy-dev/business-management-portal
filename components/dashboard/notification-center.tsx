@@ -20,7 +20,7 @@ function getSupabase() {
   )
 }
 
-// Get current authenticated user
+// Get authenticated user
 async function getCurrentUser() {
   const supabase = getSupabase()
 
@@ -30,13 +30,18 @@ async function getCurrentUser() {
   } = await supabase.auth.getUser()
 
   if (error) throw error
-  if (!user) throw new Error('User not authenticated')
+
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
 
   return { supabase, user }
 }
 
-// Get latest notifications for current user
-export async function getNotifications(limit = 20): Promise<Notification[]> {
+// Get latest notifications
+export async function getNotifications(
+  limit = 20
+): Promise<Notification[]> {
   const { supabase, user } = await getCurrentUser()
 
   const { data, error } = await supabase
@@ -67,7 +72,9 @@ export async function getUnreadCount(): Promise<number> {
 }
 
 // Mark one notification as read
-export async function markAsRead(notificationId: string): Promise<void> {
+export async function markAsRead(
+  notificationId: string
+): Promise<void> {
   const { supabase, user } = await getCurrentUser()
 
   const { error } = await supabase
@@ -102,7 +109,7 @@ export async function deleteAllNotifications(): Promise<void> {
     .eq('user_id', user.id)
 
   if (error) {
-    console.error('deleteAllNotifications error:', error)
+    console.error('Failed to delete notifications:', error)
     throw error
   }
 }
