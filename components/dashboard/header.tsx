@@ -79,69 +79,150 @@ export function Header({
   const formatTime = (dateStr: string) =>
     new Date(dateStr).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
 
-  // Real-persisted notifications: fetch on mount + realtime subscribe to `notifications` table
+  // Load persisted notifications and keep the current user's feed live.
+  // Realtime is retried automatically if the websocket disconnects.
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    let isActive = true
+    let retryCount = 0
+    let currentUserId: string | null = null
+
+    const showBrowserNotification = (notification: NotificationRow) => {
+      if (
+        typeof window === 'undefined' ||
+        !('Notification' in window) ||
+        window.Notification.permission !== 'granted'
+      ) {
+        return
+      }
+
+      const browserNotification = new window.Notification(notification.title, {
+        body: notification.message,
+        icon: '/favicon.ico',
+        tag: notification.id,
+      })
+
+      browserNotification.onclick = () => {
+        window.focus()
+        if (notification.link) window.location.href = notification.link
+        browserNotification.close()
+      }
+    }
+
+    const startRealtime = () => {
+      if (!isActive || !currentUserId) return
+
+      channel = supabase
+        .channel(`notifications-${currentUserId}-${Date.now()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${currentUserId}`,
+          },
+          (payload) => {
+            const n = payload.new as NotificationRow
+
+            setNotifications((prev) => {
+              // Avoid duplicates if the connection reconnects during an event.
+              if (prev.some((item) => item.id === n.id)) return prev
+
+              return [{
+                id: n.id,
+                title: n.title,
+                message: n.message,
+                link: n.link,
+                read: n.is_read,
+                type: n.type,
+                time: formatTime(n.created_at),
+              }, ...prev].slice(0, 20)
+            })
+
+            showBrowserNotification(n)
+          }
+        )
+        .subscribe((status) => {
+          if (!isActive) return
+
+          setRealtimeStatus(status)
+
+          if (status === 'SUBSCRIBED') {
+            retryCount = 0
+            return
+          }
+
+          if (
+            status === 'CHANNEL_ERROR' ||
+            status === 'TIMED_OUT' ||
+            status === 'CLOSED'
+          ) {
+            if (retryTimer) clearTimeout(retryTimer)
+
+            const delay = Math.min(3000 * (2 ** retryCount), 30000)
+            retryCount += 1
+
+            retryTimer = setTimeout(async () => {
+              if (!isActive) return
+              if (channel) {
+                const oldChannel = channel
+                channel = null
+                await supabase.removeChannel(oldChannel)
+              }
+              if (isActive) startRealtime()
+            }, delay)
+          }
+        })
+    }
 
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-      // Initial fetch from DB (survives refresh, works across devices)
+      if (!isActive) return
+      if (userError || !user) {
+        setRealtimeStatus('CLOSED')
+        return
+      }
+
+      currentUserId = user.id
+
+      // Fetch only this signed-in user's notifications.
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select('id, title, message, link, is_read, type, created_at')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20)
 
-      if (!error && data) {
-        setNotifications(
-          data.map((n) => ({
-            id: n.id,
-            title: n.title,
-            message: n.message,
-            link: n.link,
-            read: n.is_read,
-            type: n.type,
-            time: formatTime(n.created_at),
-          }))
-        )
+      if (!isActive) return
+
+      if (error) {
+        console.error('Failed to load notifications:', error)
+      } else if (data) {
+        setNotifications(data.map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          link: n.link,
+          read: n.is_read,
+          type: n.type,
+          time: formatTime(n.created_at),
+        })))
       }
 
-      // Guard against React Strict Mode double-invoking this effect in dev,
-      // which would otherwise try to .on() an already-subscribed channel.
-      const existing = supabase.getChannels().find(
-        (c) => c.topic === `realtime:notifications-${user.id}`
-      )
-      if (existing) {
-        await supabase.removeChannel(existing)
-      }
-
-      channel = supabase
-        .channel(`notifications-${user.id}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            const n = payload.new as NotificationRow
-            setNotifications(prev => [{
-              id: n.id,
-              title: n.title,
-              message: n.message,
-              link: n.link,
-              read: n.is_read,
-              type: n.type,
-              time: formatTime(n.created_at),
-            }, ...prev.slice(0, 19)])
-          }
-        )
-        .subscribe((status) => setRealtimeStatus(status))
+      startRealtime()
     }
 
-    init()
+    void init()
 
-    return () => { if (channel) supabase.removeChannel(channel) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: fetch fn is stable-in-practice, only rerun on listed deps
+    return () => {
+      isActive = false
+      if (retryTimer) clearTimeout(retryTimer)
+      if (channel) void supabase.removeChannel(channel)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -168,7 +249,13 @@ export function Header({
 
   const markOneRead = async (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id)
+      .eq('user_id', user.id)
   }
 
   const clearAll = () => {
@@ -247,7 +334,20 @@ export function Header({
 
       {/* Notifications */}
       <div className="relative" ref={notifRef}>
-        <button onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false) }} aria-label="Notifications"
+        <button
+          onClick={() => {
+            setNotifOpen(!notifOpen)
+            setProfileOpen(false)
+
+            // Browser permission is requested only after the user clicks the bell.
+            if (
+              'Notification' in window &&
+              window.Notification.permission === 'default'
+            ) {
+              void window.Notification.requestPermission()
+            }
+          }}
+          aria-label="Notifications"
           className="relative w-10 h-10 rounded-xl border border-[#E8E2D8] bg-[#F7F5F1] flex items-center justify-center text-[#7A6E60] hover:bg-[#F0EBE0] hover:border-[#B8860B] transition-all flex-shrink-0">
           <Bell size={15} />
           {unreadCount > 0 && (

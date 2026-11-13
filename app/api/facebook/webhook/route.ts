@@ -525,6 +525,82 @@ export async function POST(req: NextRequest) {
           );
         }
 
+        // 14. Notify company admins and active employees.
+        // profiles.id is the Supabase Auth user ID.
+        // employees.user_id links an employee record to its Auth user.
+        try {
+          const [
+            { data: admins, error: adminsError },
+            { data: activeEmployees, error: employeesError },
+          ] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("id")
+              .eq("company_id", COMPANY_ID)
+              .in("role", ["super_admin", "tenant_admin", "admin"]),
+
+            supabase
+              .from("employees")
+              .select("user_id")
+              .eq("company_id", COMPANY_ID)
+              .eq("is_active", true)
+              .not("user_id", "is", null),
+          ]);
+
+          if (adminsError) {
+            console.error("Facebook lead admin lookup failed:", adminsError);
+          }
+
+          if (employeesError) {
+            console.error("Facebook lead employee lookup failed:", employeesError);
+          }
+
+          const recipientIds = Array.from(
+            new Set([
+              ...(admins || []).map((admin) => admin.id),
+              ...(activeEmployees || []).map((employee) => employee.user_id),
+            ].filter((userId): userId is string => Boolean(userId)))
+          );
+
+          if (recipientIds.length > 0) {
+            const notificationRows = recipientIds.map((userId) => ({
+              company_id: COMPANY_ID,
+              user_id: userId,
+              type: "lead_assigned",
+              title: "New Facebook lead received",
+              message: `${newLead.lead_name || "New lead"} · ${
+                newLead.interest || "Interior enquiry"
+              } — ${newLead.phone || "Contact details available in CRM"}`,
+              link: "/dashboard/industries/interior-design/new-leads",
+            }));
+
+            const { error: notificationError } = await supabase
+              .from("notifications")
+              .insert(notificationRows);
+
+            if (notificationError) {
+              console.error(
+                "Facebook lead notifications insert failed:",
+                notificationError
+              );
+            } else {
+              console.log(
+                `Facebook lead notifications created for ${recipientIds.length} users`
+              );
+            }
+          } else {
+            console.warn(
+              "No admin or active employee user IDs found for Facebook lead notification"
+            );
+          }
+        } catch (notificationError) {
+          // Notification failure must not cause Meta to retry an already-saved lead.
+          console.error(
+            "Facebook lead notification step failed:",
+            notificationError
+          );
+        }
+
         processedCount++;
 
         console.log(
