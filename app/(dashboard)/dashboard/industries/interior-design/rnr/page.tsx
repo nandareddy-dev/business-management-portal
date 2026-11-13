@@ -73,17 +73,17 @@ export default async function RNRPage() {
   const noDateLeads    = leads.filter((l: Lead) => !l.rnr_callback_date)
 
   return (
-    <div className="space-y-5 p-4 md:p-6" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-3 p-3 md:p-4" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[4px] mb-1" style={{ color: '#B8860B' }}>Interior Design · Pipeline</p>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1C1712]">RNR</h1>
-          <p className="text-sm text-[#9A8F82] mt-0.5">
+          <p className="text-[9px] font-bold uppercase tracking-[3px] mb-0.5" style={{ color: '#B8860B' }}>Interior Design · Pipeline</p>
+          <h1 className="text-lg font-black tracking-tight text-[#1C1712]">RNR</h1>
+          <p className="text-[11px] text-[#9A8F82] mt-0.5">
             <span className="font-bold text-[#1C1712]">{count}</span> leads — Ring No Response
           </p>
         </div>
         <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
           style={{
             background: 'linear-gradient(135deg, #FEF2F2, #FFF7F7)',
             color: '#DC2626',
@@ -91,12 +91,12 @@ export default async function RNRPage() {
             boxShadow: '0 4px 14px rgba(220,38,38,0.10)',
           }}
         >
-          <Phone className="w-4 h-4" /> RNR Stage
+          <Phone className="w-3.5 h-3.5" /> RNR Stage
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {[
           { label: 'Total RNR',   value: count,                color: '#DC2626' },
           { label: 'Overdue',     value: overdueLeads.length,  color: '#B91C1C' },
@@ -104,10 +104,10 @@ export default async function RNRPage() {
           { label: 'With Budget', value: leads.filter((l: Lead) => l.budget).length, color: '#B8860B' },
         ].map((s, i) => (
           <div key={i}
-            className="bg-white border border-[#EDE7DB] rounded-2xl px-4 py-3 flex items-center justify-between transition-all duration-200 hover:-translate-y-0.5"
+            className="bg-white border border-[#EDE7DB] rounded-xl px-3 py-2 flex items-center justify-between gap-2 transition-all duration-200 hover:-translate-y-0.5"
             style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.04), 0 8px 20px rgba(28,23,18,0.05)' }}>
-            <p className="text-xs text-[#7A6E60] font-medium">{s.label}</p>
-            <p className="font-black text-xl" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-[10px] text-[#7A6E60] font-semibold leading-tight">{s.label}</p>
+            <p className="font-black text-base" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>

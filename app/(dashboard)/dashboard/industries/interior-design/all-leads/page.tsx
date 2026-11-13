@@ -213,16 +213,16 @@ export default function AllLeadsPage() {
     : 'Date Range'
 
   return (
-    <div className="space-y-5 p-4 md:p-6" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+    <div className="space-y-3 p-3 md:p-4" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[4px] mb-1" style={{ color: '#B8860B' }}>Interior Design · Pipeline</p>
-          <h1 className="text-2xl font-bold text-[#1C1712] tracking-tight">All Leads</h1>
+          <p className="text-[9px] font-bold uppercase tracking-[3px] mb-0.5" style={{ color: '#B8860B' }}>Interior Design · Pipeline</p>
+          <h1 className="text-lg font-black text-[#1C1712] tracking-tight">All Leads</h1>
         </div>
         <div
-          className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-shadow"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-shadow"
           style={{
             background: 'linear-gradient(135deg, #F5F3FF, #EFEAFF)',
             color: '#7C3AED',
@@ -230,12 +230,12 @@ export default function AllLeadsPage() {
             boxShadow: '0 4px 14px rgba(124,58,237,0.10)',
           }}
         >
-          <Users className="w-4 h-4" />All Stages
+          <Users className="w-3.5 h-3.5" />All Stages
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {[
           { label: 'Total Leads', value: String(totalLeads),  color: '#7C3AED', icon: '👥' },
           { label: 'Active',      value: String(activeCount), color: '#2563EB', icon: '⚡' },
@@ -244,36 +244,36 @@ export default function AllLeadsPage() {
         ].map((s, i) => (
           <div
             key={i}
-            className="relative overflow-hidden bg-white border border-[#EDE7DB] rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5"
+            className="relative overflow-hidden bg-white border border-[#EDE7DB] rounded-xl p-2.5 md:p-3 transition-all duration-200 hover:-translate-y-0.5"
             style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.04), 0 8px 20px rgba(28,23,18,0.05)' }}
           >
             <div
-              className="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-[0.06]"
+              className="absolute -top-4 -right-4 w-14 h-14 rounded-full opacity-[0.06]"
               style={{ background: s.color }}
             />
-            <div className="relative flex items-center justify-between mb-2">
-              <p className="text-[9px] font-bold text-[#9A8F82] uppercase tracking-wider">{s.label}</p>
-              <span className="text-base">{s.icon}</span>
+            <div className="relative flex items-center justify-between mb-1">
+              <p className="text-[8px] md:text-[9px] font-bold text-[#9A8F82] uppercase tracking-wider leading-tight">{s.label}</p>
+              <span className="text-xs md:text-sm">{s.icon}</span>
             </div>
-            <p className="relative text-2xl font-black tracking-tight" style={{ color: s.color }}>{s.value}</p>
+            <p className="relative text-base md:text-xl font-black tracking-tight" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* ── Search + Date Range Bar ── */}
       <div
-        className="bg-white/90 backdrop-blur border border-[#EDE7DB] rounded-2xl p-3 space-y-3"
+        className="bg-white/90 backdrop-blur border border-[#EDE7DB] rounded-xl p-2 space-y-2"
         style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.04), 0 10px 24px rgba(28,23,18,0.05)' }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 sm:flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5 sm:flex-wrap">
 
           {/* Stage + Source row on mobile — side by side, each takes half width */}
-          <div className="flex items-center gap-2.5 sm:contents">
+          <div className="flex items-center gap-2 sm:contents">
 
             {/* Stage Filter Dropdown — collapses "All / Follow Up / RNR / ..." into one control */}
             <div className="relative flex-1 sm:flex-initial sm:inline-block min-w-0" onClick={e => e.stopPropagation()}>
               <button onClick={() => setStageDropdownOpen(o => !o)}
-                className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 pl-3.5 sm:pl-4 pr-3 py-2.5 rounded-xl text-xs font-black transition-all duration-200 sm:hover:-translate-y-0.5"
+                className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all duration-200 sm:hover:-translate-y-0.5"
                 style={{
                   background: activeFilter ? STAGE_CONFIG[activeFilter].color : '#1C1712',
                   color: '#fff',
@@ -282,7 +282,7 @@ export default function AllLeadsPage() {
                 <span className="flex items-center gap-2 min-w-0">
                   <span className="tracking-wide truncate">{activeFilter ? STAGE_CONFIG[activeFilter].label : '👥 All Leads'}</span>
                   <span className="flex items-center justify-center rounded-full text-[10px] font-black leading-none flex-shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.22)', minWidth: 24, height: 22, padding: '0 6px' }}>
+                    style={{ background: 'rgba(255,255,255,0.22)', minWidth: 20, height: 18, padding: '0 6px' }}>
                     {activeFilter ? getCount(activeFilter) : totalLeads}
                   </span>
                 </span>
@@ -290,17 +290,17 @@ export default function AllLeadsPage() {
               </button>
 
               {stageDropdownOpen && (
-                <div className="absolute z-30 mt-2 w-64 max-w-[85vw] rounded-2xl bg-white border border-[#EDE7DB] overflow-hidden"
+                <div className="absolute z-30 mt-1.5 w-56 max-w-[85vw] rounded-xl bg-white border border-[#EDE7DB] overflow-hidden"
                   style={{ boxShadow: '0 12px 32px rgba(28,23,18,0.14)' }}>
                   <button onClick={() => { setActiveFilter(null); setStageDropdownOpen(false) }}
-                    className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-[#FAFAF8]"
+                    className="w-full flex items-center justify-between px-3 py-2 transition-colors hover:bg-[#FAFAF8]"
                     style={{ borderBottom: '1px solid #F0EBE0', background: !activeFilter ? '#F5F0E8' : 'transparent' }}>
-                    <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#1C1712' }}>
-                      <span className="text-base leading-none">👥</span>
+                    <span className="flex items-center gap-2 text-xs font-semibold" style={{ color: '#1C1712' }}>
+                      <span className="text-sm leading-none">👥</span>
                       <span className="tracking-wide">All Leads</span>
                     </span>
                     <span className="flex items-center justify-center rounded-full text-[10px] font-black text-white leading-none"
-                      style={{ background: 'linear-gradient(135deg, #1C1712, #3a3128)', minWidth: 24, height: 22, padding: '0 6px' }}>
+                      style={{ background: 'linear-gradient(135deg, #1C1712, #3a3128)', minWidth: 20, height: 18, padding: '0 6px' }}>
                       {totalLeads}
                     </span>
                   </button>
@@ -311,18 +311,18 @@ export default function AllLeadsPage() {
                     const isActive = activeFilter === key
                     return (
                       <button key={key} onClick={() => { setActiveFilter(isActive ? null : key); setStageDropdownOpen(false) }}
-                        className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-[#FAFAF8]"
+                        className="w-full flex items-center justify-between px-3 py-2 transition-colors hover:bg-[#FAFAF8]"
                         style={{
                           borderBottom: idx < UNIQUE_STAGES.length - 1 ? '1px solid #F0EBE0' : 'none',
                           background: isActive ? cfg.bg : 'transparent',
                         }}>
-                        <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: cfg.color }}>
+                        <span className="flex items-center gap-2 text-xs font-semibold" style={{ color: cfg.color }}>
                           <span className="tracking-wide">{label}</span>
                         </span>
                         <span className="flex items-center justify-center rounded-full text-[10px] font-black text-white leading-none"
                           style={{
                             background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}CC)`,
-                            minWidth: 24, height: 22, padding: '0 6px',
+                            minWidth: 20, height: 18, padding: '0 6px',
                             boxShadow: `0 2px 6px ${cfg.color}50`,
                           }}>
                           {cnt}
@@ -338,12 +338,12 @@ export default function AllLeadsPage() {
             {Object.keys(sourceCounts).length > 0 && (
               <div className="relative flex-1 sm:flex-initial sm:inline-block min-w-0" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setSourceDropdownOpen(o => !o)}
-                  className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 pl-3.5 sm:pl-4 pr-3 py-2.5 rounded-xl text-xs font-black transition-all duration-200 sm:hover:-translate-y-0.5"
+                  className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 sm:gap-2.5 pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all duration-200 sm:hover:-translate-y-0.5"
                   style={{ background: '#1C1712', color: '#fff', boxShadow: '0 4px 14px rgba(28,23,18,0.22)' }}>
                   <span className="flex items-center gap-2">
                     <span className="tracking-wide">📊 Sources</span>
                     <span className="flex items-center justify-center rounded-full text-[10px] font-black leading-none"
-                      style={{ background: 'rgba(255,255,255,0.2)', minWidth: 22, height: 22, padding: '0 6px' }}>
+                      style={{ background: 'rgba(255,255,255,0.2)', minWidth: 20, height: 18, padding: '0 6px' }}>
                       {Object.keys(sourceCounts).length}
                     </span>
                   </span>
@@ -351,22 +351,22 @@ export default function AllLeadsPage() {
                 </button>
 
                 {sourceDropdownOpen && (
-                  <div className="absolute z-30 mt-2 w-72 max-w-[85vw] rounded-2xl bg-white border border-[#EDE7DB] overflow-hidden right-0 sm:right-auto"
+                  <div className="absolute z-30 mt-1.5 w-60 max-w-[85vw] rounded-xl bg-white border border-[#EDE7DB] overflow-hidden right-0 sm:right-auto"
                     style={{ boxShadow: '0 12px 32px rgba(28,23,18,0.14)' }}>
                     {Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]).map(([src, cnt], idx, arr) => {
                       const cfg = SOURCE_CONFIG[src] ?? SOURCE_CONFIG['Other']
                       return (
                         <div key={src}
-                          className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[#FAFAF8]"
+                          className="flex items-center justify-between px-3 py-2 transition-colors hover:bg-[#FAFAF8]"
                           style={{ borderBottom: idx < arr.length - 1 ? '1px solid #F0EBE0' : 'none' }}>
-                          <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: cfg.color }}>
-                            <span className="text-base leading-none">{cfg.icon}</span>
+                          <span className="flex items-center gap-2 text-xs font-semibold" style={{ color: cfg.color }}>
+                            <span className="text-sm leading-none">{cfg.icon}</span>
                             <span className="tracking-wide">{src}</span>
                           </span>
                           <span className="flex items-center justify-center rounded-full text-[10px] font-black text-white leading-none"
                             style={{
                               background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}CC)`,
-                              minWidth: 24, height: 22, padding: '0 6px',
+                              minWidth: 20, height: 18, padding: '0 6px',
                               boxShadow: `0 2px 6px ${cfg.color}50`,
                             }}>
                             {cnt}
@@ -381,14 +381,14 @@ export default function AllLeadsPage() {
           </div>
 
           {/* Search — full width on mobile */}
-          <div className="flex items-center gap-2 px-3 py-2.5 sm:py-2 rounded-xl border border-[#E2D9C8] bg-[#FAFAF8] focus-within:border-[#B8860B] focus-within:shadow-[0_0_0_3px_rgba(184,134,11,0.10)] transition-all w-full sm:w-64 sm:flex-shrink-0">
-            <Search size={14} className="text-[#9A8F82] flex-shrink-0" />
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] bg-[#FAFAF8] focus-within:border-[#B8860B] focus-within:shadow-[0_0_0_3px_rgba(184,134,11,0.10)] transition-all w-full sm:w-56 sm:flex-shrink-0">
+            <Search size={13} className="text-[#9A8F82] flex-shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by name or phone..."
-              className="flex-1 text-sm bg-transparent outline-none text-[#1C1712] placeholder:text-[#B8B0A0] min-w-0"
+              className="flex-1 text-xs bg-transparent outline-none text-[#1C1712] placeholder:text-[#B8B0A0] min-w-0"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')}
@@ -402,7 +402,7 @@ export default function AllLeadsPage() {
           <div className="relative sm:ml-auto sm:flex-shrink-0" onClick={e => e.stopPropagation()}>
             {/* Mobile: single button opening a popover */}
             <button onClick={() => setDateDropdownOpen(o => !o)}
-              className="sm:hidden w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all"
+              className="sm:hidden w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
               style={{
                 background: dateActive ? '#FFFBEB' : '#FAFAF8',
                 color: dateActive ? '#B8860B' : '#7A6E60',
@@ -424,7 +424,7 @@ export default function AllLeadsPage() {
             </button>
 
             {dateDropdownOpen && (
-              <div className="sm:hidden absolute z-30 mt-2 right-0 left-0 rounded-2xl bg-white border border-[#EDE7DB] p-4 space-y-3"
+              <div className="sm:hidden absolute z-30 mt-2 right-0 left-0 rounded-xl bg-white border border-[#EDE7DB] p-3 space-y-2"
                 style={{ boxShadow: '0 12px 32px rgba(28,23,18,0.14)' }}>
                 <div>
                   <label className="text-[9px] font-black uppercase tracking-wider text-[#9A8F82] block mb-1.5">From</label>
@@ -455,10 +455,10 @@ export default function AllLeadsPage() {
             <div className="hidden sm:flex items-center gap-2 flex-wrap flex-shrink-0">
               <Calendar size={13} className="text-[#9A8F82] flex-shrink-0" />
               <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setDateActive(true) }}
-                className="text-xs rounded-xl px-3 py-1.5 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] focus:shadow-[0_0_0_3px_rgba(184,134,11,0.10)] font-semibold transition-all" />
+                className="text-[11px] rounded-lg px-2.5 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] focus:shadow-[0_0_0_3px_rgba(184,134,11,0.10)] font-semibold transition-all" />
               <span className="text-xs text-[#9A8F82] font-semibold">to</span>
               <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setDateActive(true) }}
-                className="text-xs rounded-xl px-3 py-1.5 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] focus:shadow-[0_0_0_3px_rgba(184,134,11,0.10)] font-semibold transition-all" />
+                className="text-[11px] rounded-lg px-2.5 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] focus:shadow-[0_0_0_3px_rgba(184,134,11,0.10)] font-semibold transition-all" />
               {dateActive && (
                 <button onClick={clearDate}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
@@ -474,7 +474,7 @@ export default function AllLeadsPage() {
       {/* Table */}
       {loading ? (
         <div
-          className="bg-white border border-[#EDE7DB] rounded-2xl py-20 text-center"
+          className="bg-white border border-[#EDE7DB] rounded-xl py-14 text-center"
           style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.04), 0 10px 24px rgba(28,23,18,0.05)' }}
         >
           <div className="w-8 h-8 border-2 border-[#B8860B] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -482,7 +482,7 @@ export default function AllLeadsPage() {
         </div>
       ) : !filteredLeads.length ? (
         <div
-          className="bg-white border border-[#EDE7DB] rounded-2xl py-20 text-center"
+          className="bg-white border border-[#EDE7DB] rounded-xl py-14 text-center"
           style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.04), 0 10px 24px rgba(28,23,18,0.05)' }}
         >
           <div
@@ -500,7 +500,7 @@ export default function AllLeadsPage() {
         </div>
       ) : (
         <div
-          className="bg-white border border-[#EDE7DB] rounded-2xl overflow-hidden"
+          className="bg-white border border-[#EDE7DB] rounded-xl overflow-hidden"
           style={{ boxShadow: '0 1px 2px rgba(28,23,18,0.04), 0 12px 28px rgba(28,23,18,0.06)' }}
         >
           {/* Desktop Table */}
@@ -509,7 +509,7 @@ export default function AllLeadsPage() {
               <thead>
                 <tr style={{ background: '#FAFAF8', borderBottom: '1px solid #F0EBE0' }}>
                   {['#', 'Lead', 'Phone', 'Stage', 'Source', 'Interest', 'Budget', 'City', 'Location', 'Date'].map(h => (
-                    <th key={h} className="text-left text-[9px] font-black text-[#9A8F82] uppercase tracking-[2px] px-4 py-3 whitespace-nowrap first:pl-5 last:pr-5">{h}</th>
+                    <th key={h} className="text-left text-[8px] font-black text-[#9A8F82] uppercase tracking-[1.5px] px-3 py-2 whitespace-nowrap first:pl-4 last:pr-4">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -524,47 +524,47 @@ export default function AllLeadsPage() {
                     <tr key={l.id}
                       onClick={() => router.push(`${LEAD_BASE}/${l.id}`)}
                       className="border-b border-[#F7F5F1] last:border-0 hover:bg-[#FDFAF8] transition-colors cursor-pointer group">
-                      <td className="pl-5 pr-2 py-3.5"><span className="text-[10px] font-bold text-[#C4BAB0]">{i + 1}</span></td>
-                      <td className="pl-2 pr-4 py-3.5">
+                      <td className="pl-4 pr-1 py-2"><span className="text-[10px] font-bold text-[#C4BAB0]">{i + 1}</span></td>
+                      <td className="pl-1 pr-3 py-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black text-white flex-shrink-0 transition-transform group-hover:scale-105"
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white flex-shrink-0 transition-transform group-hover:scale-105"
                             style={{ background: `linear-gradient(135deg, ${g[0]}, ${g[1]})`, boxShadow: `0 3px 10px ${g[0]}40` }}>
                             {ini(l.lead_name)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-[#1C1712]">{l.lead_name}</p>
-                            {l.property_type && <p className="text-[10px] text-[#B8B0A0]">{l.property_type}</p>}
+                            <p className="text-xs font-bold text-[#1C1712]">{l.lead_name}</p>
+                            {l.property_type && <p className="text-[9px] text-[#B8B0A0]">{l.property_type}</p>}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5"><p className="text-sm font-mono text-[#1C1712]">{l.phone ?? '—'}</p></td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                      <td className="px-3 py-2"><p className="text-xs font-mono text-[#1C1712]">{l.phone ?? '—'}</p></td>
+                      <td className="px-3 py-2">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
                           style={{ background: stg.bg, color: stg.color, border: `1px solid ${stg.color}30` }}>{stg.label}</span>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3 py-2">
                         {l.source
-                          ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                          ? <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
                               style={{ background: src.bg, color: src.color, border: `1px solid ${src.color}30` }}>{src.icon} {l.source}</span>
                           : <span className="text-[#C4BAB0]">—</span>}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3 py-2">
                         {l.interest
-                          ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                          ? <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full"
                               style={{ background: int.bg, color: int.color, border: `1px solid ${int.color}30` }}>
                               {l.interest === 'High' ? '🔥' : l.interest === 'Medium' ? '⚡' : '❄️'} {l.interest}</span>
                           : <span className="text-[#C4BAB0]">—</span>}
                       </td>
-                      <td className="px-4 py-3.5">
-                        {budget ? <p className="text-sm font-bold" style={{ color: '#B8860B' }}>{budget}</p> : <span className="text-[#C4BAB0]">—</span>}
+                      <td className="px-3 py-2">
+                        {budget ? <p className="text-xs font-bold" style={{ color: '#B8860B' }}>{budget}</p> : <span className="text-[#C4BAB0]">—</span>}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3 py-2">
                         {l.city ? <span className="text-[10px] text-[#7A6E60]">📍 {l.city}</span> : <span className="text-[#C4BAB0]">—</span>}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3 py-2">
                         {getLocation(l) ? <span className="text-[10px] text-[#7A6E60]">🗺️ {getLocation(l)}</span> : <span className="text-[#C4BAB0]">—</span>}
                       </td>
-                      <td className="px-4 py-3.5 pr-5">
+                      <td className="px-3 py-2 pr-4">
                         <p className="text-[10px] text-[#B8B0A0] whitespace-nowrap">
                           {new Date(l.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
@@ -587,22 +587,22 @@ export default function AllLeadsPage() {
               return (
                 <div key={l.id}
                   onClick={() => router.push(`${LEAD_BASE}/${l.id}`)}
-                  className="px-4 py-4 active:bg-[#FAFAF8] transition-colors cursor-pointer">
+                  className="px-3 py-2.5 active:bg-[#FAFAF8] transition-colors cursor-pointer">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-[11px] font-black text-white flex-shrink-0"
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black text-white flex-shrink-0"
                       style={{ background: `linear-gradient(135deg, ${g[0]}, ${g[1]})`, boxShadow: `0 3px 10px ${g[0]}40` }}>
                       {ini(l.lead_name)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-bold text-[#1C1712] truncate">{l.lead_name}</p>
-                        {budget && <p className="text-xs font-black flex-shrink-0" style={{ color: '#B8860B' }}>{budget}</p>}
+                        <p className="text-xs font-bold text-[#1C1712] truncate">{l.lead_name}</p>
+                        {budget && <p className="text-[11px] font-black flex-shrink-0" style={{ color: '#B8860B' }}>{budget}</p>}
                       </div>
-                      <p className="text-xs text-[#9A8F82] mt-0.5">{l.phone ?? '—'}</p>
-                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: stg.bg, color: stg.color }}>{stg.label}</span>
-                        {l.interest && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: int.bg, color: int.color }}>{l.interest === 'High' ? '🔥' : l.interest === 'Medium' ? '⚡' : '❄️'} {l.interest}</span>}
-                        {l.source && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: src.bg, color: src.color }}>{src.icon} {l.source}</span>}
+                      <p className="text-[11px] text-[#9A8F82] mt-0.5">{l.phone ?? '—'}</p>
+                      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                        <span className="text-[9px] font-bold px-1.5 py-px rounded-full" style={{ background: stg.bg, color: stg.color }}>{stg.label}</span>
+                        {l.interest && <span className="text-[9px] font-bold px-1.5 py-px rounded-full" style={{ background: int.bg, color: int.color }}>{l.interest === 'High' ? '🔥' : l.interest === 'Medium' ? '⚡' : '❄️'} {l.interest}</span>}
+                        {l.source && <span className="text-[9px] font-bold px-1.5 py-px rounded-full" style={{ background: src.bg, color: src.color }}>{src.icon} {l.source}</span>}
                       </div>
                       <div className="flex items-center gap-2 mt-1.5">
                         {l.city && <span className="text-[9px] text-[#7A6E60]">📍 {l.city}</span>}
@@ -612,18 +612,18 @@ export default function AllLeadsPage() {
                         </span>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-[#D4CEC8] flex-shrink-0" />
+                    <ChevronRight size={14} className="text-[#D4CEC8] flex-shrink-0" />
                   </div>
                 </div>
               )
             })}
           </div>
 
-          <div className="px-5 py-3 border-t border-[#F0EBE0] flex items-center justify-between" style={{ background: '#FAFAF8' }}>
-            <p className="text-[10px] text-[#9A8F82]">
+          <div className="px-4 py-2 border-t border-[#F0EBE0] flex items-center justify-between" style={{ background: '#FAFAF8' }}>
+            <p className="text-[9px] text-[#9A8F82]">
               Showing <span className="font-bold text-[#1C1712]">{filteredLeads.length}</span> of {totalLeads} leads
             </p>
-            <p className="text-[10px] text-[#B8B0A0]">Interior Design · GK CRM</p>
+            <p className="text-[9px] text-[#B8B0A0]">Interior Design · GK CRM</p>
           </div>
         </div>
       )}

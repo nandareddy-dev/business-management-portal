@@ -70,7 +70,7 @@ export function RnrClient({
     }
 
     // Date range (on created_at)
-    if (dateFrom) base = base.filter((l: RnrLead) => new Date(l.created_at) >= new Date(dateFrom))
+    if (dateFrom) base = base.filter((l: RnrLead) => new Date(l.created_at) >= new Date(dateFrom + 'T00:00:00'))
     if (dateTo)   base = base.filter((l: RnrLead) => new Date(l.created_at) <= new Date(dateTo + 'T23:59:59'))
 
     return base
@@ -80,12 +80,12 @@ export function RnrClient({
   const isGrouped = quickFilter === 'all' && !search.trim() && !dateFrom && !dateTo
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Quick filters + Search + Date — all on one line */}
-      <div className="bg-white rounded-2xl px-4 py-3 border border-[#E8E2D8]">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="bg-white rounded-xl px-3 py-2 border border-[#E8E2D8]">
+        <div className="flex items-center gap-2 flex-wrap xl:flex-nowrap">
 
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#9A8F82] flex-shrink-0">Quick:</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-[#9A8F82] flex-shrink-0">Quick:</span>
           {([
             { key: 'all',      label: '📋 All',      count: count },
             { key: 'overdue',  label: '⏰ Overdue',  count: overdueLeads.length },
@@ -93,7 +93,7 @@ export function RnrClient({
             { key: 'tomorrow', label: '🔜 Tomorrow', count: tomorrowLeads.length },
           ] as { key: QuickFilter; label: string; count: number }[]).map(f => (
             <button key={f.key} onClick={() => setQuickFilter(f.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex-shrink-0"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all flex-shrink-0 whitespace-nowrap"
               style={{
                 background: quickFilter === f.key ? (f.key === 'overdue' ? '#FEF2F2' : f.key === 'today' ? '#FFFBEB' : '#F5F3FF') : '#F5F0E8',
                 color: quickFilter === f.key ? (f.key === 'overdue' ? '#DC2626' : f.key === 'today' ? '#D97706' : '#7C3AED') : '#6B5E4E',
@@ -101,7 +101,7 @@ export function RnrClient({
               }}>
               {f.label}
               {f.count > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black"
+                <span className="px-1.5 py-px rounded-full text-[8px] font-black"
                   style={{ background: quickFilter === f.key ? 'rgba(255,255,255,0.28)' : '#E8E2D8', color: quickFilter === f.key ? '#fff' : '#6B5E4E' }}>
                   {f.count}
                 </span>
@@ -109,25 +109,25 @@ export function RnrClient({
             </button>
           ))}
 
-          <div className="relative flex-1 min-w-[200px]">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9A8F82]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="relative flex-1 min-w-[140px]">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9A8F82]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or phone..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border"
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none border"
               style={{ background: '#F5F0E8', borderColor: 'rgba(184,134,11,0.2)', color: '#1C1712' }}
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2.5 rounded-xl text-sm outline-none border"
+              className="w-[128px] px-2 py-1.5 rounded-lg text-[11px] outline-none border"
               style={{ background: '#F5F0E8', borderColor: 'rgba(184,134,11,0.2)', color: '#1C1712' }}/>
-            <span className="text-xs text-[#9A8F82]">to</span>
+            <span className="text-[10px] text-[#9A8F82]">to</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2.5 rounded-xl text-sm outline-none border"
+              className="w-[128px] px-2 py-1.5 rounded-lg text-[11px] outline-none border"
               style={{ background: '#F5F0E8', borderColor: 'rgba(184,134,11,0.2)', color: '#1C1712' }}/>
           </div>
 
@@ -156,7 +156,7 @@ function GroupedView({ overdueLeads, todayLeads, tomorrowLeads, upcomingLeads, n
   upcomingLeads: RnrLead[]; noDateLeads: RnrLead[]; router: ReturnType<typeof useRouter>
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {overdueLeads.length > 0 && (
         <LeadTable
           leads={overdueLeads}
@@ -230,29 +230,29 @@ function LeadTable({
 }) {
   if (!showEmpty && leads.length === 0) return null
   if (showEmpty && leads.length === 0) return (
-    <div className="bg-white rounded-2xl border border-[#E8E2D8] p-10 text-center">
-      <p className="text-3xl mb-2">🔍</p>
-      <p className="text-sm font-bold text-[#9A8F82]">No leads found</p>
+    <div className="bg-white rounded-xl border border-[#E8E2D8] p-6 text-center">
+      <p className="text-2xl mb-1.5">🔍</p>
+      <p className="text-xs font-bold text-[#9A8F82]">No leads found</p>
     </div>
   )
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E2D8] overflow-hidden shadow-sm">
+    <div className="bg-white rounded-xl border border-[#E8E2D8] overflow-hidden shadow-sm">
       {/* Section header */}
-      <div className="px-4 py-3 flex items-center gap-2"
+      <div className="px-3 py-2 flex items-center gap-2"
         style={{ background: headerBg ?? '#FEF2F2', borderBottom: `1px solid ${headerBorder ?? '#FECACA'}` }}>
-        {icon && <span className="text-sm">{icon}</span>}
-        <p className="text-[10px] font-black uppercase tracking-[3px]" style={{ color }}>
+        {icon && <span className="text-xs">{icon}</span>}
+        <p className="text-[9px] font-black uppercase tracking-[2.5px]" style={{ color }}>
           {label}
         </p>
-        <span className="px-2 py-0.5 rounded-full text-[9px] font-black text-white ml-1"
+        <span className="px-1.5 py-px rounded-full text-[8px] font-black text-white ml-1"
           style={{ background: color }}>{leads.length}</span>
       </div>
 
       {/* Table header */}
-      <div className="hidden md:grid grid-cols-[32px_1fr_160px_140px_90px_120px_70px] gap-3 px-4 py-2.5 border-b border-[#F0EBE0]">
+      <div className="hidden md:grid grid-cols-[28px_1fr_150px_130px_90px_110px_44px] gap-2 px-3 py-1.5 border-b border-[#F0EBE0]">
         {['#', 'LEAD', 'PHONE', 'SOURCE', 'BUDGET', 'CALLBACK', 'CALL'].map(h => (
-          <p key={h} className="text-[9px] font-bold uppercase tracking-wider text-[#9A8F82]">{h}</p>
+          <p key={h} className="text-[8px] font-bold uppercase tracking-wider text-[#9A8F82]">{h}</p>
         ))}
       </div>
 
@@ -264,33 +264,33 @@ function LeadTable({
           <div
             key={lead.id}
             onClick={() => router.push(`/dashboard/industries/interior-design/leads/${lead.id}`)}
-            className="grid md:grid-cols-[32px_1fr_160px_140px_90px_120px_70px] gap-3 px-4 py-3.5 cursor-pointer hover:bg-[#FFFDF8] transition-colors items-center"
+            className="grid md:grid-cols-[28px_1fr_150px_130px_90px_110px_44px] gap-2 px-3 py-2 cursor-pointer hover:bg-[#FFFDF8] transition-colors items-center"
             style={{ borderBottom: i < leads.length - 1 ? '1px solid #F5F0E8' : 'none' }}
           >
             {/* # */}
-            <p className="text-xs text-[#C4BAB0] font-bold hidden md:block">{i + 1}</p>
+            <p className="text-[10px] text-[#C4BAB0] font-bold hidden md:block">{i + 1}</p>
 
             {/* Lead */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white flex-shrink-0"
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white flex-shrink-0"
                 style={{ background: `linear-gradient(135deg,${c1},${c2})` }}>
                 {ini(lead.lead_name)}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-[#1C1712] truncate">{lead.lead_name}</p>
+                <p className="text-xs font-bold text-[#1C1712] truncate">{lead.lead_name}</p>
                 {lead.property_type && (
-                  <p className="text-[10px] text-[#9A8F82] truncate">{lead.property_type}</p>
+                  <p className="text-[9px] text-[#9A8F82] truncate">{lead.property_type}</p>
                 )}
               </div>
             </div>
 
             {/* Phone */}
-            <p className="text-sm font-mono text-[#6B5E4E] hidden md:block">{lead.phone || '—'}</p>
+            <p className="text-xs font-mono text-[#6B5E4E] hidden md:block">{lead.phone || '—'}</p>
 
             {/* Source */}
             <div className="hidden md:block">
               {lead.source ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold"
                   style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
                   📌 {lead.source}
                 </span>
@@ -300,14 +300,14 @@ function LeadTable({
             {/* Budget */}
             <div className="hidden md:block">
               {lead.budget ? (
-                <span className="text-sm font-bold" style={{ color: '#B8860B' }}>₹{lead.budget}</span>
+                <span className="text-xs font-bold" style={{ color: '#B8860B' }}>₹{lead.budget}</span>
               ) : <span className="text-[#C4BAB0]">—</span>}
             </div>
 
             {/* Callback date */}
             <div className="hidden md:block">
               {lead.rnr_callback_date ? (
-                <span className="text-[11px] font-bold" style={{ color: isOverdue ? '#DC2626' : '#6B5E4E' }}>
+                <span className="text-[10px] font-bold" style={{ color: isOverdue ? '#DC2626' : '#6B5E4E' }}>
                   {isOverdue && '⚠️ '}{fmtDate(lead.rnr_callback_date)}
                 </span>
               ) : (
@@ -318,15 +318,15 @@ function LeadTable({
             {/* Call button */}
             <div className="hidden md:flex justify-end" onClick={e => e.stopPropagation()}>
               <a href={`tel:${lead.phone}`}
-                className="w-9 h-9 rounded-xl flex items-center justify-center hover:scale-110 transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center hover:scale-110 transition-all"
                 style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
-                <Phone className="w-4 h-4" style={{ color: '#059669' }}/>
+                <Phone className="w-3.5 h-3.5" style={{ color: '#059669' }}/>
               </a>
             </div>
 
             {/* Mobile: phone + call row */}
             <div className="md:hidden col-span-full flex items-center justify-between mt-1">
-              <p className="text-sm font-mono text-[#6B5E4E]">{lead.phone || '—'}</p>
+              <p className="text-xs font-mono text-[#6B5E4E]">{lead.phone || '—'}</p>
               <div className="flex items-center gap-2">
                 {lead.budget && (
                   <span className="text-xs font-bold" style={{ color: '#B8860B' }}>₹{lead.budget}</span>
@@ -337,7 +337,7 @@ function LeadTable({
                   </span>
                 )}
                 <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
                   style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
                   <Phone className="w-3.5 h-3.5" style={{ color: '#059669' }}/>
                 </a>
@@ -349,10 +349,10 @@ function LeadTable({
 
       {/* Footer */}
       {footerNote && (
-        <div className="px-4 py-2.5 flex items-center justify-between"
+        <div className="px-3 py-1.5 flex items-center justify-between"
           style={{ borderTop: '1px solid #F5F0E8', background: '#FAFAF8' }}>
-          <p className="text-[10px] text-[#9A8F82]">{footerNote}</p>
-          <p className="text-[10px] text-[#C4BAB0]">Interior Design · GK CRM</p>
+          <p className="text-[9px] text-[#9A8F82]">{footerNote}</p>
+          <p className="text-[9px] text-[#C4BAB0]">Interior Design · GK CRM</p>
         </div>
       )}
     </div>
