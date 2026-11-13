@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
-import { ArrowLeft, Phone, Plus, Upload, FileText, X, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
+import { ArrowLeft, Phone, Plus, Upload, FileText, X, ChevronDown, ChevronUp, Pencil, MapPin } from 'lucide-react'
 
 const GRADIENTS = [
   ['#7C3AED', '#4F46E5'], ['#0891B2', '#0E7490'], ['#059669', '#047857'],
@@ -59,6 +59,7 @@ interface LeadDetail {
   source?: string
   budget?: string
   city?: string
+  location?: string
   property_type?: string
   interest?: string
   notes?: string
@@ -141,6 +142,24 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
   const [showBudgetPopup, setShowBudgetPopup] = useState(false)
   const [budgetInput, setBudgetInput] = useState('')
   const [savingBudget, setSavingBudget] = useState(false)
+
+  // ── Location Edit State ──
+  const [showLocationPopup, setShowLocationPopup] = useState(false)
+  const [locationInput, setLocationInput] = useState(initialLead.location || initialLead.city || '')
+  const [savingLocation, setSavingLocation] = useState(false)
+  // ── Full Lead Details Editor ──
+  const [showLeadEditPopup, setShowLeadEditPopup] = useState(false)
+  const [savingLeadEdit, setSavingLeadEdit] = useState(false)
+  const [leadEditForm, setLeadEditForm] = useState({
+    lead_name: initialLead.lead_name || '',
+    phone: initialLead.phone || '',
+    city: initialLead.city || '',
+    location: initialLead.location || '',
+    property_type: initialLead.property_type || '',
+    interest: initialLead.interest || '',
+    budget: initialLead.budget || '',
+    source: initialLead.source || '',
+  })
 
   // ── RNR Popup State (NEW) ──
   const [showRnrPopup, setShowRnrPopup] = useState(false)
@@ -309,6 +328,96 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
       setShowBudgetPopup(false)
     } catch (e) { console.error(e) }
     setSavingBudget(false)
+  }
+
+  // ── Full Lead Details Save ──
+  const openLeadEditPopup = () => {
+    setLeadEditForm({
+      lead_name: lead.lead_name || '',
+      phone: lead.phone || '',
+      city: lead.city || '',
+      location: String(lead.location || ''),
+      property_type: lead.property_type || '',
+      interest: lead.interest || '',
+      budget: lead.budget || '',
+      source: lead.source || '',
+    })
+    setShowLeadEditPopup(true)
+  }
+
+  const handleSaveLeadDetails = async () => {
+    if (!leadEditForm.lead_name.trim() || !leadEditForm.phone.trim()) return
+    setSavingLeadEdit(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const updates = {
+      lead_name: leadEditForm.lead_name.trim(),
+      phone: leadEditForm.phone.trim(),
+      city: leadEditForm.city.trim() || null,
+      location: leadEditForm.location.trim() || null,
+      property_type: leadEditForm.property_type.trim() || null,
+      interest: leadEditForm.interest.trim() || null,
+      budget: leadEditForm.budget.trim() || null,
+      source: leadEditForm.source.trim() || null,
+      assigned_to: myEmployeeId,
+    }
+
+    try {
+      const { error } = await supabase.from('leads').update(updates).eq('id', leadId)
+      if (error) throw error
+
+      setLead((current: LeadDetail) => ({ ...current, ...updates }))
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        type: 'note',
+        title: '✏️ Lead Details Updated',
+        description: 'Lead name, phone, city, location and lead information updated',
+        user_id: user?.id,
+        created_at: new Date().toISOString(),
+      })
+      await refreshActivities()
+      setShowLeadEditPopup(false)
+    } catch (error) {
+      console.error('Unable to update lead details:', error)
+      alert('Unable to update lead details. Please check the fields and try again.')
+    } finally {
+      setSavingLeadEdit(false)
+    }
+  }
+
+  // ── Location Edit Save ──
+  const handleSaveLocation = async () => {
+    const cleaned = locationInput.trim()
+    if (!cleaned) return
+
+    setSavingLocation(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const previousLocation = lead.location || lead.city || ''
+
+    try {
+      const { error } = await supabase.from('leads').update({
+        location: cleaned,
+        assigned_to: myEmployeeId,
+      }).eq('id', leadId)
+
+      if (error) throw error
+
+      setLead((l: LeadDetail) => ({ ...l, location: cleaned }))
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        type: 'note',
+        title: '📍 Location Updated',
+        description: `${previousLocation || '—'} → ${cleaned}`,
+        user_id: user?.id,
+        created_at: new Date().toISOString(),
+      })
+      await refreshActivities()
+      setShowLocationPopup(false)
+    } catch (e) {
+      console.error('Failed to update lead location:', e)
+      alert('Location update failed. Please check that the leads table has a location column.')
+    } finally {
+      setSavingLocation(false)
+    }
   }
 
   // ── RNR Save (NEW) ──
@@ -613,8 +722,6 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
         .pdf-drop:hover { border-color:#F9A8D4!important; background:#FFF5F9!important }
         .rev-row:hover { background: rgba(219,39,119,0.03) }
         .rev-row { transition: background 0.15s }
-        .budget-edit-btn { transition: all 0.15s ease; opacity: 0.55 }
-        .budget-edit-btn:hover { opacity: 1; transform: scale(1.12) }
         .no-scrollbar::-webkit-scrollbar { display: none }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none }
       `}</style>
@@ -643,8 +750,17 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
 
       {/* ─── HERO CARD ─── */}
       <div className="px-4 pt-5 pb-3 fu2">
-        <div className="rounded-3xl p-5" style={{ background:'#fff', boxShadow:'0 4px 24px rgba(0,0,0,0.07)', border:'1px solid rgba(0,0,0,0.05)' }}>
-          <div className="flex items-start gap-4">
+        <div className="rounded-3xl p-5 relative" style={{ background:'#fff', boxShadow:'0 4px 24px rgba(0,0,0,0.07)', border:'1px solid rgba(0,0,0,0.05)' }}>
+          <button
+            type="button"
+            onClick={openLeadEditPopup}
+            className="absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold hvr"
+            style={{ background:'#FFF7E6', color:'#B7791F', border:'1px solid #FDE2A7', boxShadow:'0 2px 8px rgba(184,134,11,0.10)' }}
+            aria-label="Edit lead details"
+          >
+            <Pencil size={13}/> <span className="hidden sm:inline">Edit Details</span><span className="sm:hidden">Edit</span>
+          </button>
+          <div className="flex items-start gap-4 pr-16 sm:pr-20">
             {/* Avatar */}
             <div style={{ position:'relative', flexShrink:0 }}>
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black text-white"
@@ -674,19 +790,10 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                     📌 {lead.source}
                   </span>
                 )}
-                {/* Budget badge — now with an inline edit affordance. Editing here (or from the
-                    info card below) updates the same lead.budget state, so this pill and the
-                    "Budget" info card always stay in sync automatically. */}
+                {/* Budget display — editing is available from the main Edit Details popup. */}
                 <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-bold flex-shrink-0"
                   style={{ background:'#FFFBEB', color:'#B8860B', border:'1px solid #FDE68A' }}>
                   💰 {lead.budget || 'No budget'}
-                  <button
-                    onClick={() => { setBudgetInput(lead.budget || ''); setShowBudgetPopup(true) }}
-                    className="budget-edit-btn ml-0.5 w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(184,134,11,0.15)' }}
-                    aria-label="Edit budget">
-                    <Pencil size={9} />
-                  </button>
                 </span>
                 {lead.handover_date && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-bold flex-shrink-0"
@@ -721,28 +828,20 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
           <div className="no-scrollbar flex items-center gap-2 mt-4 pt-4 overflow-x-auto sm:overflow-visible sm:justify-between"
             style={{ borderTop:'1px solid rgba(0,0,0,0.05)' }}>
             {[
-              { icon:'📍', label:'City',        val:lead.city, editable:false },
-              { icon:'🏗️', label:'Property',    val:lead.property_type, editable:false },
-              { icon:'📅', label:'Added',       val:fmtDate(lead.created_at), editable:false },
-              { icon:'💰', label:'Budget',      val:lead.budget, editable:true },
-              { icon:'💡', label:'Requirement', val:lead.interest, editable:false },
-            ].map((x,i) => (x.val || x.editable) ? (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-2xl flex-shrink-0 sm:flex-1 relative group min-w-[128px] sm:min-w-0"
+              { icon:'🏙️', label:'City',        val:lead.city },
+              { icon:'📍', label:'Location',    val:lead.location },
+              { icon:'🏗️', label:'Property',    val:lead.property_type },
+              { icon:'📅', label:'Added',       val:fmtDate(lead.created_at) },
+              { icon:'💰', label:'Budget',      val:lead.budget },
+              { icon:'💡', label:'Requirement', val:lead.interest },
+            ].map((x,i) => (x.val || x.label === 'Location' || x.label === 'Budget') ? (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-2xl flex-shrink-0 sm:flex-1 min-w-[128px] sm:min-w-0"
                 style={{ background:'#F7F4EF' }}>
                 <span className="text-sm flex-shrink-0">{x.icon}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[8px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ color:'#B8B0A0' }}>{x.label}</p>
                   <p className="text-xs font-black truncate" style={{ color: x.val ? '#1A1612' : '#C4BAB0' }}>{x.val || '—'}</p>
                 </div>
-                {x.editable && (
-                  <button
-                    onClick={() => { setBudgetInput(lead.budget || ''); setShowBudgetPopup(true) }}
-                    className="budget-edit-btn w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(184,134,11,0.15)', color: '#B8860B' }}
-                    aria-label="Edit budget">
-                    <Pencil size={10} />
-                  </button>
-                )}
               </div>
             ) : null)}
           </div>
@@ -973,6 +1072,69 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
         <p className="text-center text-[10px] pb-4" style={{ color:'#D4CEC8' }}>GK CRM · Interior Design</p>
       </div>
 
+      {/* ═══ FULL LEAD DETAILS EDIT POPUP ═══ */}
+      {showLeadEditPopup && (
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-3 sm:p-4" style={{ animation:'fadeIn 0.2s ease' }}>
+          <button type="button" className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={() => !savingLeadEdit && setShowLeadEditPopup(false)} aria-label="Close edit dialog"/>
+          <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto scale-in"
+            style={{ background:'#FFFDF8', border:'1.5px solid #F3E5C8', borderRadius:26, boxShadow:'0 32px 80px rgba(0,0,0,0.22)' }}>
+            <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between"
+              style={{ background:'#FFFDF8', borderBottom:'1px solid #F0E7D8', borderTopLeftRadius:26, borderTopRightRadius:26 }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background:'#FFF2D8', color:'#B7791F' }}>
+                  <Pencil size={18}/>
+                </div>
+                <div>
+                  <p className="text-base font-black" style={{ color:'#1A1612' }}>Edit Lead Details</p>
+                  <p className="text-[10px] font-medium" style={{ color:'#9A8974' }}>Update customer and project information</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowLeadEditPopup(false)} disabled={savingLeadEdit}
+                className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background:'#F5F0E8', color:'#6B5E4E' }} aria-label="Close">
+                <X size={17}/>
+              </button>
+            </div>
+
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {([
+                ['lead_name', 'Customer Name', 'Enter customer name'],
+                ['phone', 'Phone Number', 'Enter phone number'],
+                ['city', 'City', 'e.g. Hyderabad'],
+                ['location', 'Location / Full Address', 'e.g. Kukatpally, KPHB, Hyderabad'],
+                ['property_type', 'Property Type', 'e.g. 2 BHK'],
+                ['interest', 'Requirement', 'e.g. Full Interior'],
+                ['budget', 'Budget', 'e.g. ₹5–10 lakhs'],
+                ['source', 'Lead Source', 'e.g. Facebook Meta'],
+              ] as const).map(([key, label, placeholder]) => (
+                <label key={key} className="block min-w-0">
+                  <span className="text-[9px] font-black uppercase tracking-[2px] block mb-1.5" style={{ color:'#9A8974' }}>{label}</span>
+                  <input
+                    type="text"
+                    value={leadEditForm[key]}
+                    onChange={event => setLeadEditForm(current => ({ ...current, [key]: event.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full min-w-0 px-3.5 py-3 rounded-xl text-sm font-semibold outline-none focus:ring-2"
+                    style={{ background:'#FAF7F1', border:'1px solid #E9DFD0', color:'#1A1612' }}
+                  />
+                </label>
+              ))}
+            </div>
+
+            <div className="px-5 pb-5 flex flex-col-reverse sm:flex-row justify-end gap-2">
+              <button type="button" onClick={() => setShowLeadEditPopup(false)} disabled={savingLeadEdit}
+                className="px-5 py-3 rounded-xl text-sm font-bold" style={{ background:'#F2EEE7', color:'#6B5E4E' }}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleSaveLeadDetails} disabled={savingLeadEdit || !leadEditForm.lead_name.trim() || !leadEditForm.phone.trim()}
+                className="px-5 py-3 rounded-xl text-sm font-black text-white disabled:opacity-50"
+                style={{ background:'linear-gradient(135deg,#D6A21E,#B7791F)', boxShadow:'0 5px 14px rgba(184,134,11,0.22)' }}>
+                {savingLeadEdit ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ BUDGET EDIT POPUP (NEW) ═══ */}
       {showBudgetPopup && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4" style={{ animation:'fadeIn 0.2s ease' }}>
@@ -1020,6 +1182,67 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                   className="flex-1 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40"
                   style={{ background:'linear-gradient(135deg,#B8860B,#D97706)', boxShadow:'0 6px 18px rgba(184,134,11,0.3)' }}>
                   {savingBudget ? '⏳ Saving...' : '💰 Save Budget'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ LOCATION EDIT POPUP ═══ */}
+      {showLocationPopup && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4" style={{ animation:'fadeIn 0.2s ease' }}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !savingLocation && setShowLocationPopup(false)}/>
+          <div className="relative w-full max-w-sm scale-in"
+            style={{ background:'#F0FFFE', border:'1.5px solid #A5F3FC', borderRadius:28, boxShadow:'0 32px 80px rgba(8,145,178,0.2)' }}>
+            <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom:'1px solid #A5F3FC' }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                  style={{ background:'#CFFAFE', border:'1.5px solid #A5F3FC', color:'#0891B2' }}>
+                  <MapPin size={19}/>
+                </div>
+                <div>
+                  <p className="text-sm font-black" style={{ color:'#164E63' }}>Edit Location</p>
+                  <p className="text-[10px] font-medium" style={{ color:'#0891B2' }}>{lead.lead_name}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowLocationPopup(false)} disabled={savingLocation}
+                className="w-8 h-8 rounded-full flex items-center justify-center hvr"
+                style={{ background:'#CFFAFE', color:'#0891B2' }} aria-label="Close location editor">
+                <X size={16}/>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-[3px] block mb-1.5"
+                  style={{ color:'#0891B2' }}>📍 Full Location</label>
+                <input
+                  type="text"
+                  value={locationInput}
+                  onChange={e => setLocationInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveLocation() }}
+                  placeholder="e.g. Kukatpally, Hyderabad, Telangana"
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-2xl text-sm font-bold outline-none"
+                  style={{ background:'#ECFEFF', border:'1.5px solid #A5F3FC', color:'#164E63' }}
+                />
+                <p className="text-[10px] mt-1.5" style={{ color:'#0891B2' }}>
+                  Add area, city and state for a more accurate customer location.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setShowLocationPopup(false)} disabled={savingLocation}
+                  className="flex-1 py-3 rounded-2xl text-sm font-bold disabled:opacity-50"
+                  style={{ background:'#CFFAFE', color:'#0E7490', border:'1px solid #A5F3FC' }}>
+                  Cancel
+                </button>
+                <button onClick={handleSaveLocation}
+                  disabled={savingLocation || !locationInput.trim()}
+                  className="flex-1 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40"
+                  style={{ background:'linear-gradient(135deg,#0891B2,#0E7490)', boxShadow:'0 6px 18px rgba(8,145,178,0.25)' }}>
+                  {savingLocation ? '⏳ Saving...' : '📍 Save Location'}
                 </button>
               </div>
             </div>
