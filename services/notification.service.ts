@@ -1,129 +1,159 @@
-﻿import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createBrowserClient } from '@supabase/ssr'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-export type NotificationType =
-  | 'lead_assigned'
-  | 'payment_received'
-  | 'quotation_approved'
-  | 'leave_request'
-  | 'leave_approved'
-  | 'system'
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-interface CreateNotificationParams {
-  companyId: string
-  userId: string
-  type: NotificationType
-  title: string
-  message: string
-  link?: string
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+function getAdminClient() {
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Supabase server environment variables are missing')
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 }
 
-// Server-side: create a notification (called from other services/routes)
-export async function createNotification(params: CreateNotificationParams) {
-  const { data, error } = await supabaseAdmin
-    .from('notifications')
-    .insert({
-      company_id: params.companyId,
-      user_id: params.userId,
-      type: params.type,
-      title: params.title,
-      message: params.message,
-      link: params.link ?? null,
+export async function POST(request: NextRequest) {
+  try {
+    const authorization = request.headers.get('authorization')
+    const token = authorization?.startsWith('Bearer ')
+      ? authorization.slice(7)
+      : null
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const leadNames = Array.isArray(body?.leadNames)
+      ? body.leadNames
+          .filter((name: unknown): name is string => typeof name === 'string')
+          .map((name: string) => name.trim())
+          .filter(Boolean)
+          .slice(0, 200)
+      : []
+
+    if (leadNames.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one lead name is required' },
+        { status: 400 }
+      )
+    }
+
+    const supabaseAdmin = getAdminClient()
+
+    // Verify the user's access token; never trust a user ID supplied by the browser.
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token)
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, company_id')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile?.company_id) {
+      console.error('Lead notification profile lookup failed:', profileError)
+      return NextResponse.json(
+        { error: 'User company could not be verified' },
+        { status: 403 }
+      )
+    }
+
+    // companyId from the browser is only a consistency check, never the source
+    // of authorization. The trusted company ID comes from the verified profile.
+    if (body?.companyId && body.companyId !== profile.company_id) {
+      return NextResponse.json(
+        { error: 'Company mismatch' },
+        { status: 403 }
+      )
+    }
+
+    const companyId = profile.company_id
+
+    const [
+      { data: admins, error: adminsError },
+      { data: employees, error: employeesError },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('company_id', companyId)
+        .in('role', ['super_admin', 'tenant_admin', 'admin']),
+      supabaseAdmin
+        .from('employees')
+        .select('user_id')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .not('user_id', 'is', null),
+    ])
+
+    if (adminsError) {
+      console.error('Lead notification admin lookup failed:', adminsError)
+    }
+
+    if (employeesError) {
+      console.error('Lead notification employee lookup failed:', employeesError)
+    }
+
+    // Always include the authenticated user so the person adding the lead
+    // also receives the in-app notification.
+    const recipientIds = Array.from(
+      new Set(
+        [
+          user.id,
+          ...(admins || []).map((admin) => admin.id),
+          ...(employees || []).map((employee) => employee.user_id),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0)
+      )
+    )
+
+    const notificationRows = recipientIds.flatMap((userId) =>
+      leadNames.map((leadName) => ({
+        company_id: companyId,
+        user_id: userId,
+        type: 'lead_assigned',
+        title: 'New lead added',
+        message: `${leadName} was added to the CRM.`,
+        link: '/dashboard/industries/interior-design/new-leads',
+      }))
+    )
+
+    const { error: insertError } = await supabaseAdmin
+      .from('notifications')
+      .insert(notificationRows)
+
+    if (insertError) {
+      console.error('Lead notifications insert failed:', insertError)
+      return NextResponse.json(
+        { error: 'Could not create in-app notifications' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      notifiedUsers: recipientIds.length,
+      notificationsCreated: notificationRows.length,
     })
-    .select()
-    .single()
-
-  if (error) {
-    console.error('createNotification error:', error)
-    throw error
+  } catch (error) {
+    console.error('Lead notification API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
-  return data
-}
-
-// Bulk create — e.g. notify all managers of a company
-export async function createNotificationForUsers(
-  userIds: string[],
-  params: Omit<CreateNotificationParams, 'userId'>
-) {
-  const rows = userIds.map((userId) => ({
-    company_id: params.companyId,
-    user_id: userId,
-    type: params.type,
-    title: params.title,
-    message: params.message,
-    link: params.link ?? null,
-  }))
-
-  const { error } = await supabaseAdmin.from('notifications').insert(rows)
-  if (error) {
-    console.error('createNotificationForUsers error:', error)
-    throw error
-  }
-}
-
-// Client-side: fetch notifications for current user
-export async function getNotifications(limit = 20) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit)
-
-  if (error) throw error
-  return data
-}
-
-export async function getUnreadCount() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const { count, error } = await supabase
-    .from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('is_read', false)
-
-  if (error) throw error
-  return count ?? 0
-}
-
-export async function markAsRead(notificationId: string) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const { error } = await supabase
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('id', notificationId)
-
-  if (error) throw error
-}
-
-export async function markAllAsRead() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return
-
-  const { error } = await supabase
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-
-  if (error) throw error
 }
