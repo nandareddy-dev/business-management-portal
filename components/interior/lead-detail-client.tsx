@@ -182,6 +182,7 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
   const [savingSV, setSavingSV] = useState(false)
 
   const [markingComplete, setMarkingComplete] = useState(false)
+  const [markingNotResponding, setMarkingNotResponding] = useState(false)
 
   const [showQuotationPopup, setShowQuotationPopup] = useState(false)
   const [qtDate, setQtDate] = useState(getTomorrow())
@@ -541,19 +542,62 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
   }
 
   const handleMarkVisitCompleted = async () => {
+    if (markingComplete || markingNotResponding) return
     setMarkingComplete(true)
     const { data: { user } } = await supabase.auth.getUser()
+    const now = new Date().toISOString()
     try {
-      await supabase.from('leads').update({ sitevisit_status: 'completed', assigned_to: myEmployeeId }).eq('id', leadId)
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({ sitevisit_status: 'completed', assigned_to: myEmployeeId })
+        .eq('id', leadId)
+      if (updateError) throw updateError
+
       setLead((l: LeadDetail) => ({ ...l, sitevisit_status: 'completed' }))
-      await supabase.from('lead_activities').insert({
+      const { error: activityError } = await supabase.from('lead_activities').insert({
         lead_id: leadId, type: 'sitevisit', title: '✅ Site Visit Completed',
-        description: `Visit marked completed on ${fmtDateTime(new Date().toISOString())}`,
-        user_id: user?.id, created_at: new Date().toISOString(),
+        description: `Visit marked completed on ${fmtDateTime(now)}`,
+        user_id: user?.id, created_at: now,
       })
+      if (activityError) throw activityError
       await refreshActivities()
-    } catch (e) { console.error(e) }
-    setMarkingComplete(false)
+    } catch (e) {
+      console.error('Unable to mark site visit completed:', e)
+      alert('Unable to update the site visit status. Please try again.')
+    } finally {
+      setMarkingComplete(false)
+    }
+  }
+
+  const handleMarkVisitNotResponding = async () => {
+    if (markingNotResponding || markingComplete) return
+    const confirmed = window.confirm('Mark this client as not responding? You can edit the Site Visit later to reschedule it.')
+    if (!confirmed) return
+
+    setMarkingNotResponding(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const now = new Date().toISOString()
+    try {
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({ sitevisit_status: 'not_responding', assigned_to: myEmployeeId })
+        .eq('id', leadId)
+      if (updateError) throw updateError
+
+      setLead((l: LeadDetail) => ({ ...l, sitevisit_status: 'not_responding' }))
+      const { error: activityError } = await supabase.from('lead_activities').insert({
+        lead_id: leadId, type: 'sitevisit', title: '📵 Client Not Responding',
+        description: `Client did not respond for the scheduled site visit (${fmtDateTime(lead.sitevisit_date || '')}). Reschedule by editing the Site Visit.`,
+        user_id: user?.id, created_at: now,
+      })
+      if (activityError) throw activityError
+      await refreshActivities()
+    } catch (e) {
+      console.error('Unable to mark client as not responding:', e)
+      alert('Unable to update the Site Visit status. Please try again.')
+    } finally {
+      setMarkingNotResponding(false)
+    }
   }
 
   const uploadPdf = async (file: File): Promise<string | null> => {
@@ -688,9 +732,20 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
   const isAdmin = ['admin', 'tenant_admin', 'manager'].includes(myRole)
 
   const isStageDisabled = (stageKey: string) => {
-    // Admin — full freedom, any stage anytime
+    // Admin — full freedom, any stage anytime.
     if (isAdmin) return false
-    // Employee — forward only, Lost always allowed
+
+    // Special workflow: a quotation can be created BEFORE the site visit.
+    // In that case Site Visit becomes the next allowed action after Quotation.
+    // Keep it enabled for employees instead of treating it as a backward stage.
+    const siteVisitAfterEarlyQuotation =
+      stageKey === 'sitevisit' &&
+      lead.pipeline_stage === 'quotation' &&
+      lead.quotation_type === 'before_sitevisit'
+
+    if (siteVisitAfterEarlyQuotation) return false
+
+    // Employee — forward only, Lost always allowed.
     const targetIdx = STAGE_ORDER.indexOf(stageKey)
     if (stageKey === 'lost') return false
     return targetIdx < currentStageIdx
@@ -807,7 +862,7 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                     🔔 {fmtDateTime(lead.followup_date)}
                   </span>
                 )}
-                {lead.sitevisit_date && lead.pipeline_stage==='sitevisit' && (
+                {lead.sitevisit_date && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-bold flex-shrink-0"
                     style={{ background:'#E0F2FE', color:'#0369A1', border:'1px solid #BAE6FD' }}>
                     🏠 {fmtDateTime(lead.sitevisit_date)}
@@ -856,6 +911,9 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
             {PIPELINE_STAGES.map(stage => {
               const isActive  = lead.pipeline_stage === stage.key
               const isLoading = savingStage === stage.key
+              const isNextSiteVisit = stage.key === 'sitevisit' &&
+                lead.pipeline_stage === 'quotation' &&
+                lead.quotation_type === 'before_sitevisit'
               const disabled  = !!savingStage || isStageDisabled(stage.key)
               const isPast    = isStageDisabled(stage.key) && !isActive
               return (
@@ -864,10 +922,10 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                   disabled={disabled}
                   className="stg flex items-center justify-center gap-1.5 py-2 px-3 rounded-2xl text-xs font-bold relative flex-shrink-0 sm:flex-1 min-w-[86px] sm:min-w-0"
                   style={{
-                    background: isActive ? stage.color : isPast ? '#F0EDE8' : `${stage.color}10`,
+                    background: isActive ? stage.color : isPast ? '#F0EDE8' : isNextSiteVisit ? `${stage.color}20` : `${stage.color}10`,
                     color: isActive ? '#fff' : isPast ? '#C4BAB0' : stage.color,
-                    border: `1.5px solid ${isActive ? stage.color : isPast ? 'transparent' : stage.color+'25'}`,
-                    boxShadow: isActive ? `0 4px 16px ${stage.color}40` : 'none',
+                    border: `1.5px solid ${isActive || isNextSiteVisit ? stage.color : isPast ? 'transparent' : stage.color+'25'}`,
+                    boxShadow: isActive ? `0 4px 16px ${stage.color}40` : isNextSiteVisit ? `0 3px 12px ${stage.color}25` : 'none',
                     opacity: isPast ? 0.5 : 1,
                     cursor: isPast ? 'not-allowed' : 'pointer',
                   }}>
@@ -907,33 +965,48 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
         )}
 
         {/* Site Visit */}
-        {lead.sitevisit_date && lead.pipeline_stage==='sitevisit' && (
-          <div className="rounded-3xl p-4"
-            style={{ background:lead.sitevisit_status==='completed'?'#ECFDF5':'#F0F9FF', border:`1.5px solid ${lead.sitevisit_status==='completed'?'#6EE7B7':'#BAE6FD'}`, boxShadow:`0 4px 16px ${lead.sitevisit_status==='completed'?'rgba(5,150,105,0.08)':'rgba(8,145,178,0.08)'}` }}>
-            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:lead.sitevisit_status==='completed'?'#A7F3D0':'#BAE6FD' }}>{lead.sitevisit_status==='completed'?'✅':'🏠'}</div>
-                <p className="text-[9px] font-black uppercase tracking-[3px]" style={{ color:lead.sitevisit_status==='completed'?'#065F46':'#0369A1' }}>{lead.sitevisit_status==='completed'?'Visit Completed':'Site Visit'}</p>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background:lead.sitevisit_type==='before_quotation'?'#FEF3C7':'#FCE7F3', color:lead.sitevisit_type==='before_quotation'?'#92400E':'#9D174D' }}>{lead.sitevisit_type==='before_quotation'?'Before Qt':'After Qt'}</span>
+        {lead.sitevisit_date && lead.pipeline_stage==='sitevisit' && (() => {
+          const isCompleted = lead.sitevisit_status === 'completed'
+          const isNotResponding = lead.sitevisit_status === 'not_responding'
+          const statusColor = isCompleted ? '#065F46' : isNotResponding ? '#991B1B' : '#0369A1'
+          const statusBg = isCompleted ? '#ECFDF5' : isNotResponding ? '#FEF2F2' : '#F0F9FF'
+          const statusBorder = isCompleted ? '#6EE7B7' : isNotResponding ? '#FECACA' : '#BAE6FD'
+          return (
+            <div className="rounded-3xl p-4"
+              style={{ background:statusBg, border:`1.5px solid ${statusBorder}`, boxShadow:`0 4px 16px ${isCompleted?'rgba(5,150,105,0.08)':isNotResponding?'rgba(220,38,38,0.08)':'rgba(8,145,178,0.08)'}` }}>
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:isCompleted?'#A7F3D0':isNotResponding?'#FECACA':'#BAE6FD' }}>{isCompleted?'✅':isNotResponding?'📵':'🏠'}</div>
+                  <p className="text-[9px] font-black uppercase tracking-[3px]" style={{ color:statusColor }}>{isCompleted?'Visit Completed':isNotResponding?'Client Not Responding':'Site Visit Scheduled'}</p>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background:lead.sitevisit_type==='before_quotation'?'#FEF3C7':'#FCE7F3', color:lead.sitevisit_type==='before_quotation'?'#92400E':'#9D174D' }}>{lead.sitevisit_type==='before_quotation'?'Before Quotation':'After Quotation'}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  <button onClick={()=>{setSvDate(new Date(lead.sitevisit_date!).toISOString().split('T')[0]);setSvTime(new Date(lead.sitevisit_date!).toTimeString().slice(0,5));setSvType((lead.sitevisit_type as 'before_quotation'|'after_quotation')||'before_quotation');setSvNote(lead.sitevisit_note||'');setShowSiteVisitPopup(true)}}
+                    className="text-[10px] font-bold px-2.5 py-1.5 rounded-full hvr" style={{ background:isCompleted?'#A7F3D0':isNotResponding?'#FECACA':'#BAE6FD', color:statusColor }} title="Edit or reschedule Site Visit">✏️ Reschedule</button>
+                  {!isCompleted && !isNotResponding && (
+                    <button onClick={handleMarkVisitNotResponding} disabled={markingNotResponding || markingComplete}
+                      className="text-[10px] font-bold px-3 py-1.5 rounded-full hvr disabled:opacity-50"
+                      style={{ background:'#DC2626', color:'#fff' }}>
+                      {markingNotResponding?'⏳':'📵'} No Response
+                    </button>
+                  )}
+                  {!isCompleted && (
+                    <button onClick={handleMarkVisitCompleted} disabled={markingComplete || markingNotResponding}
+                      className="text-[10px] font-bold px-3 py-1.5 rounded-full hvr disabled:opacity-50"
+                      style={{ background:'#059669', color:'#fff' }}>
+                      {markingComplete?'⏳':'✅'} Done
+                    </button>
+                  )}
+                  {isCompleted && <span className="text-[9px] font-bold px-2.5 py-1.5 rounded-full" style={{ background:'#D1FAE5', color:'#065F46' }}>✅ Completed</span>}
+                  {isNotResponding && <span className="text-[9px] font-bold px-2.5 py-1.5 rounded-full" style={{ background:'#FEE2E2', color:'#991B1B' }}>📵 No Response</span>}
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                <button onClick={()=>{setSvDate(new Date(lead.sitevisit_date).toISOString().split('T')[0]);setSvTime(new Date(lead.sitevisit_date).toTimeString().slice(0,5));setSvType((lead.sitevisit_type as 'before_quotation'|'after_quotation')||'before_quotation');setSvNote(lead.sitevisit_note||'');setShowSiteVisitPopup(true)}}
-                  className="text-[10px] font-bold px-2.5 py-1.5 rounded-full hvr" style={{ background:lead.sitevisit_status==='completed'?'#A7F3D0':'#BAE6FD', color:lead.sitevisit_status==='completed'?'#065F46':'#0369A1' }}>✏️</button>
-                {lead.sitevisit_status !== 'completed' ? (
-                  <button onClick={handleMarkVisitCompleted} disabled={markingComplete}
-                    className="text-[10px] font-bold px-3 py-1.5 rounded-full hvr disabled:opacity-50"
-                    style={{ background:'#059669', color:'#fff' }}>
-                    {markingComplete?'⏳':'✅'} Done
-                  </button>
-                ) : (
-                  <span className="text-[9px] font-bold px-2.5 py-1.5 rounded-full" style={{ background:'#D1FAE5', color:'#065F46' }}>✅ Completed</span>
-                )}
-              </div>
+              <p className="text-base font-black" style={{ color:statusColor }}>{fmtDateTime(lead.sitevisit_date)}</p>
+              {lead.sitevisit_note && <p className="text-xs mt-1" style={{ color:statusColor }}>{lead.sitevisit_note}</p>}
+              {isNotResponding && <p className="text-[10px] mt-2 font-semibold" style={{ color:'#B91C1C' }}>Client did not respond. Use Reschedule to set a new visit date and time.</p>}
             </div>
-            <p className="text-base font-black" style={{ color:lead.sitevisit_status==='completed'?'#065F46':'#0369A1' }}>{fmtDateTime(lead.sitevisit_date)}</p>
-            {lead.sitevisit_note && <p className="text-xs mt-1" style={{ color:lead.sitevisit_status==='completed'?'#059669':'#0891B2' }}>{lead.sitevisit_note}</p>}
-          </div>
-        )}
+          )
+        })()}
 
         {/* Won */}
         {lead.pipeline_stage==='won' && (
@@ -952,13 +1025,19 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
         )}
 
         {/* Quotation */}
-        {lead.pipeline_stage==='quotation' && (
+        {(lead.quotation_date || lead.quotation_amount || revisions.length > 0) && (
           <div className="rounded-3xl overflow-hidden" style={{ background:'#FDF2F8', border:'1.5px solid #FBCFE8', boxShadow:'0 4px 16px rgba(219,39,119,0.08)' }}>
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:'#FCE7F3' }}>💰</div>
                   <p className="text-[9px] font-black uppercase tracking-[3px]" style={{ color:'#9D174D' }}>Quotation</p>
+                  {lead.quotation_type && (
+                    <span className="text-[9px] font-bold px-2 py-1 rounded-full"
+                      style={{ background:lead.quotation_type==='before_sitevisit'?'#DBEAFE':'#FCE7F3', color:lead.quotation_type==='before_sitevisit'?'#1D4ED8':'#9D174D' }}>
+                      {lead.quotation_type==='before_sitevisit'?'Before Site Visit':'After Site Visit'}
+                    </span>
+                  )}
                   {revisions.length > 0 && <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-white" style={{ background:'#9D174D' }}>v{revisions[0]?.version}</span>}
                 </div>
                 <button onClick={()=>{setQtDate(getTomorrow());setQtTime('11:00');setQtType((lead.quotation_type as 'before_sitevisit'|'after_sitevisit')||'after_sitevisit');setQtAmount('');setQtNote('');setQtPdfFile(null);setShowQuotationPopup(true)}}
@@ -993,6 +1072,12 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                             <div className="flex items-center gap-2 mb-0.5">
                               {rev.amount ? <p className="text-sm font-black" style={{ color:'#831843' }}>₹ {Number(rev.amount).toLocaleString('en-IN')}</p> : <p className="text-xs font-bold" style={{ color:'#DB2777' }}>No amount</p>}
                               {i===0 && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background:'#9D174D' }}>Latest</span>}
+                              {rev.quotation_type && (
+                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                                  style={{ background:rev.quotation_type==='before_sitevisit'?'#DBEAFE':'#FCE7F3', color:rev.quotation_type==='before_sitevisit'?'#1D4ED8':'#9D174D' }}>
+                                  {rev.quotation_type==='before_sitevisit'?'Before Site Visit':'After Site Visit'}
+                                </span>
+                              )}
                               {i < revisions.length-1 && rev.amount && revisions[i+1]?.amount && (
                                 <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ background:Number(rev.amount)<Number(revisions[i+1].amount)?'#FEF3C7':'#FCE7F3', color:Number(rev.amount)<Number(revisions[i+1].amount)?'#92400E':'#9D174D' }}>
                                   {Number(rev.amount)<Number(revisions[i+1].amount)?'↓':'↑'}₹{Math.abs(Number(rev.amount)-Number(revisions[i+1].amount)).toLocaleString('en-IN')}
