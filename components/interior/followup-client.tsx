@@ -17,7 +17,6 @@ interface Lead {
   date?: string
   created_at: string
   property_type?: string
-  location?: string | null
 }
 
 // IST date utilities
@@ -207,19 +206,19 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
           </button>
 
           {/* Search Bar */}
-          <div className="flex flex-1 items-center gap-2 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] bg-[#FAFAF8] focus-within:border-[#B8860B] transition-colors min-w-[140px]">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] bg-[#FAFAF8] focus-within:border-[#B8860B] transition-colors flex-1 min-w-[140px]">
             <Search size={13} className="text-[#9A8F82] flex-shrink-0" />
             <input 
               type="text" 
               value={searchQuery} 
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by name or phone..."
-              className="flex-1 min-w-0 text-xs bg-transparent outline-none text-[#1C1712] placeholder:text-[#B8B0A0]" 
+              className="flex-1 text-xs bg-transparent outline-none text-[#1C1712] placeholder:text-[#B8B0A0]" 
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
-                className="w-5 h-5 rounded-full bg-[#E2D9C8] flex items-center justify-center flex-shrink-0 hover:bg-[#D0C8B8] transition-colors"
+                className="w-4 h-4 rounded-full bg-[#E2D9C8] flex items-center justify-center flex-shrink-0 hover:bg-[#D0C8B8] transition-colors"
               >
                 <X size={10} className="text-[#7A6E60]" />
               </button>
@@ -227,14 +226,14 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
           </div>
 
           {/* Date Range Inputs — pushed right on wide screens */}
-          <div className="flex items-center gap-1.5 flex-wrap xl:flex-nowrap flex-shrink-0 ml-auto">
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
             <Calendar size={12} className="text-[#9A8F82] flex-shrink-0" />
             <input 
               type="date" 
               value={fromDate} 
               onChange={e => { setFromDate(e.target.value); setDateActive(true) }}
               placeholder="From"
-              className="w-[124px] text-[11px] rounded-lg px-2 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" 
+              className="w-[128px] text-[11px] rounded-lg px-2 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" 
             />
             <span className="text-[10px] text-[#9A8F82] font-semibold">to</span>
             <input 
@@ -242,7 +241,7 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
               value={toDate} 
               onChange={e => { setToDate(e.target.value); setDateActive(true) }}
               placeholder="To"
-              className="w-[124px] text-[11px] rounded-lg px-2 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" 
+              className="w-[128px] text-[11px] rounded-lg px-2 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" 
             />
             {dateActive && (
               <button 
@@ -276,12 +275,12 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {statsConfig.map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8E2D8] rounded-xl px-3 py-2 flex items-center justify-between shadow-sm">
+          <div key={i} className="bg-white border border-[#E8E2D8] rounded-xl px-3 py-2 flex items-center justify-between gap-2 shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="text-sm">{s.icon}</span>
-              <p className="text-[10px] text-[#7A6E60] font-semibold">{s.label}</p>
+              <span className="text-xs">{s.icon}</span>
+              <p className="text-[10px] text-[#7A6E60] font-semibold leading-tight">{s.label}</p>
             </div>
             <p className="text-base font-black" style={{ color: s.color }}>{s.value}</p>
           </div>
@@ -309,7 +308,7 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
             <div>
               <div className="flex items-center gap-2 mb-1.5 px-1">
                 <span className="text-xs">⚠️</span>
-                <p className="text-[10px] font-black uppercase tracking-[2px]" style={{ color: '#DC2626' }}>Overdue</p>
+                <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#DC2626' }}>Overdue</p>
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: '#DC2626' }}>
                   {overdueLeads.length}
                 </span>
@@ -329,7 +328,7 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
             <div>
               <div className="flex items-center gap-2 mb-1.5 px-1">
                 <span className="text-xs">📅</span>
-                <p className="text-[10px] font-black uppercase tracking-[2px]" style={{ color: '#16A34A' }}>Today</p>
+                <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#16A34A' }}>Today</p>
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: '#16A34A' }}>
                   {todayLeads.length}
                 </span>
@@ -349,7 +348,7 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
             <div>
               <div className="flex items-center gap-2 mb-1.5 px-1">
                 <span className="text-xs">🔜</span>
-                <p className="text-[10px] font-black uppercase tracking-[2px]" style={{ color: '#D97706' }}>Tomorrow</p>
+                <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#D97706' }}>Tomorrow</p>
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: '#D97706' }}>
                   {tomorrowLeads.length}
                 </span>
@@ -369,7 +368,7 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
             <div>
               <div className="flex items-center gap-2 mb-1.5 px-1">
                 <span className="text-xs">📆</span>
-                <p className="text-[10px] font-black uppercase tracking-[2px]" style={{ color: '#7C3AED' }}>Upcoming</p>
+                <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#7C3AED' }}>Upcoming</p>
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: '#7C3AED' }}>
                   {upcomingLeads.length}
                 </span>
@@ -389,7 +388,7 @@ export function FollowUpClient({ leads, count }: { leads: Lead[]; count: number 
             <div>
               <div className="flex items-center gap-2 mb-1.5 px-1">
                 <span className="text-xs">❓</span>
-                <p className="text-[10px] font-black uppercase tracking-[2px]" style={{ color: '#7A6E60' }}>No Date Set</p>
+                <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: '#7A6E60' }}>No Date Set</p>
                 <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white" style={{ background: '#7A6E60' }}>
                   {noDateLeads.length}
                 </span>

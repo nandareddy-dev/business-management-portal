@@ -56,28 +56,28 @@ export function QuotationsClient({ leads, count, totalBudget }: { leads: Lead[];
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white border border-[#E8E2D8] rounded-2xl p-3 shadow-sm space-y-3">
-        <div className="flex items-center gap-3 flex-wrap justify-between">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E2D9C8] bg-[#FAFAF8] focus-within:border-[#B8860B] transition-colors w-64 flex-shrink-0">
-            <Search size={14} className="text-[#9A8F82] flex-shrink-0" />
+    <div className="space-y-3">
+      <div className="bg-white border border-[#E8E2D8] rounded-xl px-3 py-2 shadow-sm space-y-2">
+        <div className="flex items-center gap-2 flex-wrap xl:flex-nowrap">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-[#E2D9C8] bg-[#FAFAF8] focus-within:border-[#B8860B] transition-colors flex-1 min-w-[140px]">
+            <Search size={13} className="text-[#9A8F82] flex-shrink-0" />
             <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by name or phone..."
-              className="flex-1 text-sm bg-transparent outline-none text-[#1C1712] placeholder:text-[#B8B0A0]" />
+              className="flex-1 text-xs bg-transparent outline-none text-[#1C1712] placeholder:text-[#B8B0A0]" />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')}
-                className="w-5 h-5 rounded-full bg-[#E2D9C8] flex items-center justify-center flex-shrink-0 hover:bg-[#D0C8B8] transition-colors">
+                className="w-4 h-4 rounded-full bg-[#E2D9C8] flex items-center justify-center flex-shrink-0 hover:bg-[#D0C8B8] transition-colors">
                 <X size={10} className="text-[#7A6E60]" />
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-            <Calendar size={13} className="text-[#9A8F82] flex-shrink-0" />
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+            <Calendar size={12} className="text-[#9A8F82] flex-shrink-0" />
             <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setDateActive(true) }}
-              className="text-xs rounded-xl px-3 py-1.5 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" />
-            <span className="text-xs text-[#9A8F82] font-semibold">to</span>
+              className="w-[128px] text-[11px] rounded-lg px-2 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" />
+            <span className="text-[10px] text-[#9A8F82] font-semibold">to</span>
             <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setDateActive(true) }}
-              className="text-xs rounded-xl px-3 py-1.5 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" />
+              className="w-[128px] text-[11px] rounded-lg px-2 py-1 border border-[#E2D9C8] bg-white text-[#1C1712] outline-none focus:border-[#B8860B] font-semibold" />
             {dateActive && (
               <button onClick={clearDate}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors">
@@ -87,7 +87,7 @@ export function QuotationsClient({ leads, count, totalBudget }: { leads: Lead[];
           </div>
         </div>
         {(searchQuery || dateActive) && (
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-0.5">
             <span className="text-[10px] font-bold text-[#9A8F82]">Showing</span>
             <span className="text-[10px] font-black text-[#1C1712]">{filteredLeads.length}</span>
             <span className="text-[10px] text-[#9A8F82]">of {count} leads</span>
@@ -98,7 +98,7 @@ export function QuotationsClient({ leads, count, totalBudget }: { leads: Lead[];
       </div>
 
       {/* Stats Cards — clickable filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {statsConfig.map((s, i) => {
           const isActive = activeStatFilter === s.key && !s.isPipeline
           const clickable = !s.isPipeline
@@ -107,15 +107,15 @@ export function QuotationsClient({ leads, count, totalBudget }: { leads: Lead[];
               key={i}
               onClick={() => clickable && setActiveStatFilter(s.key)}
               disabled={!clickable}
-              className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm transition-all text-left"
+              className="bg-white rounded-xl px-3 py-2 flex items-center justify-between gap-2 shadow-sm transition-all text-left"
               style={{
                 border: isActive ? `2px solid ${s.color}` : '1px solid #E8E2D8',
                 background: isActive ? `${s.color}0D` : '#fff',
                 cursor: clickable ? 'pointer' : 'default',
               }}
             >
-              <p className="text-xs font-medium" style={{ color: isActive ? s.color : '#7A6E60' }}>{s.label}</p>
-              <p className="font-black text-xl" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[10px] font-semibold leading-tight" style={{ color: isActive ? s.color : '#7A6E60' }}>{s.label}</p>
+              <p className="font-black text-base" style={{ color: s.color }}>{s.value}</p>
             </button>
           )
         })}

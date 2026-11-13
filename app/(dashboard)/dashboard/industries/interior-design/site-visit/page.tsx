@@ -70,17 +70,17 @@ export default async function SiteVisitPage() {
     })
 
   return (
-    <div className="space-y-5 p-4 md:p-6" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="space-y-3 p-3 md:p-4" style={{ background: '#F5F0E8', minHeight: '100vh' }}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[4px] mb-1" style={{ color: '#B8860B' }}>Interior Design · Pipeline</p>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1C1712]">Site Visit</h1>
-          <p className="text-sm text-[#9A8F82] mt-0.5">
+          <p className="text-[9px] font-bold uppercase tracking-[3px] mb-0.5" style={{ color: '#B8860B' }}>Interior Design · Pipeline</p>
+          <h1 className="text-lg font-black tracking-tight text-[#1C1712]">Site Visit</h1>
+          <p className="text-[11px] text-[#9A8F82] mt-0.5">
             <span className="font-bold text-[#1C1712]">{leadsWithDates.length}</span> leads in Site Visit stage
           </p>
         </div>
         <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap"
           style={{
             background: 'linear-gradient(135deg, #ECFEFF, #F3FEFF)',
             color: '#0891B2',
@@ -88,7 +88,7 @@ export default async function SiteVisitPage() {
             boxShadow: '0 4px 14px rgba(8,145,178,0.10)',
           }}
         >
-          <MapPin className="w-4 h-4" /> Site Visit Stage
+          <MapPin className="w-3.5 h-3.5" /> Site Visit Stage
         </div>
       </div>
 
