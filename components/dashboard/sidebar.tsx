@@ -443,223 +443,232 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const avatarColor = AVATAR_COLORS[userInitials.charCodeAt(0) % AVATAR_COLORS.length]
 
   const PERM_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-    pipeline: { label: 'Pipeline', color: '#7C3AED', bg: '#F5F3FF' },
-    projects: { label: 'Projects', color: '#EA580C', bg: '#FFF7ED' },
-    hr:       { label: 'HR',       color: '#0284C7', bg: '#EFF6FF' },
-    finance:  { label: 'Finance',  color: '#16A34A', bg: '#F0FDF4' },
+    pipeline: { label: 'Pipeline', color: '#C4B5FD', bg: 'rgba(124,58,237,0.16)' },
+    projects: { label: 'Projects', color: '#FDBA74', bg: 'rgba(234,88,12,0.16)' },
+    hr:       { label: 'HR',       color: '#7DD3FC', bg: 'rgba(2,132,199,0.16)' },
+    finance:  { label: 'Finance',  color: '#86EFAC', bg: 'rgba(22,163,74,0.16)' },
   }
 
   const getBadgeStyle = (href: string, active: boolean): React.CSSProperties => {
-    if (active) return { background: 'rgba(255,255,255,0.22)', color: '#fff' }
-    if (href.includes('/follow-up')) return { background: '#FEF3C7', color: '#B45309' }
-    if (href.includes('/rnr'))       return { background: '#FEE2E2', color: '#DC2626' }
-    if (href.includes('/won'))       return { background: '#DCFCE7', color: '#15803D' }
-    if (href.includes('/lost'))      return { background: '#FEE2E2', color: '#DC2626' }
-    if (href.includes('/handover'))  return { background: '#ECFEFF', color: '#0891B2' }
-    return { background: '#F0F0EE', color: '#888' }
+    if (active) return { background: 'rgba(227,179,65,0.24)', color: '#F3D58A' }
+    if (href.includes('/follow-up')) return { background: 'rgba(251,191,36,0.16)', color: '#FCD34D' }
+    if (href.includes('/rnr'))       return { background: 'rgba(248,113,113,0.16)', color: '#FCA5A5' }
+    if (href.includes('/won'))       return { background: 'rgba(52,211,153,0.16)', color: '#86EFAC' }
+    if (href.includes('/lost'))      return { background: 'rgba(248,113,113,0.16)', color: '#FCA5A5' }
+    if (href.includes('/handover'))  return { background: 'rgba(34,211,238,0.16)', color: '#67E8F9' }
+    return { background: 'rgba(255,255,255,0.08)', color: '#B8AE9E' }
   }
 
   return (
     <>
       {isOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 40, backdropFilter: 'blur(4px)' }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,8,6,0.55)', zIndex: 40, backdropFilter: 'blur(6px)' }}
           className="lg:hidden" onClick={onClose} />
       )}
 
       <aside style={{
         position: 'fixed', top: 0, left: 0, height: '100%', width: 236, maxWidth: '82vw', zIndex: 50,
-        display: 'flex', flexDirection: 'column',
-        background: '#FFFFFF', borderRight: '1px solid #EBEBEB',
-        boxShadow: '4px 0 24px rgba(0,0,0,0.06)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        background: 'linear-gradient(180deg,#1E1913 0%,#15110D 100%)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '8px 0 40px rgba(20,14,6,0.28)',
         transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
         transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
         fontFamily: "'Inter', sans-serif",
         paddingTop: 'env(safe-area-inset-top)',
       }}>
+        {/* ambient glows */}
+        <div aria-hidden style={{ position: 'absolute', top: -90, left: -60, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(227,179,65,0.22), transparent 68%)', pointerEvents: 'none' }} />
+        <div aria-hidden style={{ position: 'absolute', bottom: -110, right: -80, width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.14), transparent 70%)', pointerEvents: 'none' }} />
 
-        {/* LOGO */}
-        <div style={{ padding: '20px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 12, background: 'linear-gradient(135deg,#F5C518,#E0A800)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#1C1C1E', boxShadow: '0 4px 12px rgba(245,197,24,0.4)' }}>G</div>
-            <div>
-              <p style={{ fontSize: 15, fontWeight: 800, color: '#1C1C1E', margin: 0, letterSpacing: -0.3 }}>GK · CRM</p>
-              <p style={{ fontSize: 9, fontWeight: 400, color: '#F5C518', textTransform: 'uppercase', letterSpacing: 2, margin: 0 }}>Premium Suite</p>
-            </div>
-          </div>
-          {/* Cancel/Close button — now visible on desktop too, not just mobile */}
-          <button onClick={onClose} title="Close sidebar"
-            style={{ width: 36, height: 36, borderRadius: 10, background: '#F5F5F3', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#888' }}>
-            <X size={16} />
-          </button>
-        </div>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
 
-        {/* INDUSTRY CHIP */}
-        <div style={{ padding: '0 12px 14px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F9F9F7', border: '1px solid #EBEBEB', borderRadius: 16, padding: '10px 12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{ width: 32, height: 32, background: '#fff', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, border: '1px solid #F0F0EE', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-              {currentIndustry.icon}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 9, color: '#22C55E', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700, margin: 0 }}>{currentIndustry.label}</p>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#1C1C1E', margin: '2px 0 0' }}>
-                {role === 'admin' ? '👑 Admin Portal' : '👤 User Portal'}
-              </p>
-            </div>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 6px rgba(34,197,94,0.5)', flexShrink: 0 }} />
-          </div>
-
-          {activeIndustries.length > 1 && (
-            <div style={{ position: 'relative', marginTop: 8 }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setIndustryDropdownOpen(prev => !prev)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: '#F5F5F3', border: '1px solid #EBEBEB', borderRadius: 12, padding: '11px 12px', fontSize: 11, fontWeight: 600, color: '#1C1C1E', cursor: 'pointer' }}>
-                <span style={{ fontSize: 13 }}>{currentIndustry.icon}</span>
-                <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentIndustry.label}</span>
-                <ChevronDown size={11} style={{ color: '#AAA', transform: industryDropdownOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-              </button>
-              {industryDropdownOpen && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#fff', border: '1px solid #EBEBEB', borderRadius: 14, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', zIndex: 50, overflow: 'hidden' }}>
-                  {activeIndustries.map(slug => {
-                    const ind = INDUSTRIES[slug]; if (!ind) return null
-                    const isCurrent = slug === currentIndustrySlug
-                    return (
-                      <Link key={slug} href={`/dashboard/industries/${slug}/dashboard`}
-                        onClick={() => { handleIndustrySwitch(slug); setIndustryDropdownOpen(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', fontSize: 11, fontWeight: 600, background: isCurrent ? '#1C1C1E' : 'transparent', color: isCurrent ? '#fff' : '#666', textDecoration: 'none' }}>
-                        <span style={{ fontSize: 14 }}>{ind.icon}</span>
-                        <span style={{ flex: 1 }}>{ind.label}</span>
-                        {isCurrent && <span style={{ fontSize: 8, background: 'rgba(255,255,255,0.18)', padding: '2px 8px', borderRadius: 20, fontWeight: 800, letterSpacing: 1 }}>ACTIVE</span>}
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div style={{ height: 1, background: 'linear-gradient(90deg,transparent,#EBEBEB,transparent)', margin: '0 12px', flexShrink: 0 }} />
-
-        {/* NAV */}
-        <nav style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 2 }} className="scroll-hide">
-
-          {role === 'employee' && empPermissions.length > 0 && (
-            <div style={{ padding: '4px 6px 10px' }}>
-              <p style={{ fontSize: 8, fontWeight: 800, color: '#BBB', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>Your Access</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {empPermissions.map(pId => {
-                  const p = PERM_LABELS[pId]; if (!p) return null
-                  return <span key={pId} style={{ fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: p.bg, color: p.color }}>{p.label}</span>
-                })}
+          {/* LOGO */}
+          <div style={{ padding: '14px 12px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg,#F3D58A,#B8860B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#1C1712', boxShadow: '0 6px 16px rgba(227,179,65,0.35), inset 0 1px 0 rgba(255,255,255,0.45)' }}>G</div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: -0.2 }}>GK · CRM</p>
+                <p style={{ fontSize: 8, fontWeight: 600, color: '#E3B341', textTransform: 'uppercase', letterSpacing: 2.4, margin: '1px 0 0' }}>Premium Suite</p>
               </div>
             </div>
-          )}
-
-          {navGroups.map((group) => {
-            const isOpen_ = openSections[group.section] ?? true
-            const hasActive = group.items.some(item => isActive(item.href))
-            const locked = role === 'admin' && isSectionLocked(group.section)
-            return (
-              <div key={group.section} style={{ marginBottom: 2 }}>
-                <button onClick={() => toggleSection(group.section)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 10px', borderRadius: 12, border: 'none', background: hasActive ? '#F5F5F3' : 'transparent', cursor: 'pointer' }}>
-                  <span style={{ fontSize: 13, opacity: locked ? 0.5 : 1 }}>{group.icon}</span>
-                  <span style={{ flex: 1, textAlign: 'left', fontSize: 9, fontWeight: 800, color: '#BBB', textTransform: 'uppercase', letterSpacing: 2 }}>{group.section}</span>
-                  {locked && (
-                    <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 7px', borderRadius: 20, background: '#FEF3C7', color: '#B45309', display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                      <Lock size={8} /> Upgrade
-                    </span>
-                  )}
-                  <ChevronDown size={11} style={{ color: '#CCC', transform: isOpen_ ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', flexShrink: 0 }} />
-                </button>
-
-                <div style={{ overflow: 'hidden', maxHeight: isOpen_ ? 600 : 0, opacity: isOpen_ ? 1 : 0, transition: 'max-height 0.22s ease, opacity 0.18s ease' }}>
-                  <div style={{ paddingTop: 2, paddingLeft: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {locked ? (
-                      // Whole section gated (e.g. Finance on Starter) — single upgrade prompt
-                      // instead of dead-end nav items.
-                      <Link href="/dashboard/settings/company" onClick={onClose}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 9, padding: '11px 10px', borderRadius: 12,
-                          background: '#FFFBEB', border: '1px dashed #FCD34D',
-                          color: '#B45309', fontWeight: 600, fontSize: 11, textDecoration: 'none',
-                        }}>
-                        <Lock size={12} />
-                        <span>Available on Professional plan — Upgrade to unlock</span>
-                      </Link>
-                    ) : (
-                      group.items.map((item) => {
-                        const itemLocked = role === 'admin' && isItemLocked(item.label)
-                        if (itemLocked) {
-                          return (
-                            <Link key={item.label} href="/dashboard/settings/company" onClick={onClose}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 9, padding: '11px 10px', borderRadius: 12,
-                                background: 'transparent', color: '#BBB', fontWeight: 500, fontSize: 12, textDecoration: 'none',
-                              }}>
-                              <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0, opacity: 0.5 }}>{item.icon}</span>
-                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                              <Lock size={10} style={{ flexShrink: 0 }} />
-                            </Link>
-                          )
-                        }
-                        const active = isActive(item.href)
-                        const badge = getBadge(item.href)
-                        return (
-                          <Link key={item.label} href={item.href} onClick={onClose}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 9, padding: '11px 10px', borderRadius: 12,
-                              background: active ? '#1C1C1E' : 'transparent',
-                              color: active ? '#fff' : '#555',
-                              fontWeight: active ? 700 : 500,
-                              fontSize: 12, textDecoration: 'none',
-                              boxShadow: active ? '0 2px 10px rgba(0,0,0,0.12)' : 'none',
-                            }}
-                            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = '#F5F5F3' }}
-                            onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
-                            <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
-                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                            {badge && (
-                              <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20, flexShrink: 0, ...getBadgeStyle(item.href, active) }}>
-                                {badge}
-                              </span>
-                            )}
-                          </Link>
-                        )
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </nav>
-
-        <div style={{ height: 1, background: 'linear-gradient(90deg,transparent,#EBEBEB,transparent)', margin: '0 12px', flexShrink: 0 }} />
-
-        {/* USER FOOTER */}
-        <div style={{ padding: '12px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F9F9F7', border: '1px solid #EBEBEB', borderRadius: 16, padding: '10px 12px' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 12, background: `linear-gradient(135deg,${avatarColor.from},${avatarColor.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-              {userInitials}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName.split(' ')[0]}</p>
-                <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0, background: role === 'admin' ? '#FEF9C3' : '#EFF6FF', color: role === 'admin' ? '#B45309' : '#2563EB' }}>
-                  {role === 'admin' ? 'Admin' : 'Staff'}
-                </span>
-              </div>
-              <p style={{ fontSize: 10, color: '#BBB', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userCompany}</p>
-            </div>
-            <button onClick={handleLogout}
-              style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid #EBEBEB', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#BBB', flexShrink: 0 }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FEF2F2'; (e.currentTarget as HTMLElement).style.color = '#EF4444' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#fff'; (e.currentTarget as HTMLElement).style.color = '#BBB' }}>
-              <LogOut size={14} />
+            {/* Cancel/Close button — visible on desktop too, not just mobile */}
+            <button onClick={onClose} title="Close sidebar" className="sb-icon-btn"
+              style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#B8AE9E' }}>
+              <X size={14} />
             </button>
           </div>
-        </div>
 
+          {/* INDUSTRY CHIP + LIVE STATS */}
+          <div style={{ padding: '0 10px 10px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, padding: '8px 10px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <div style={{ width: 28, height: 28, background: 'rgba(227,179,65,0.14)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, border: '1px solid rgba(227,179,65,0.25)', flexShrink: 0 }}>
+                {currentIndustry.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 8, color: '#E3B341', textTransform: 'uppercase', letterSpacing: 1.6, fontWeight: 700, margin: 0 }}>{currentIndustry.label}</p>
+                <p style={{ fontSize: 10.5, fontWeight: 700, color: '#F5EFE4', margin: '2px 0 0' }}>
+                  {role === 'admin' ? '👑 Admin Portal' : '👤 User Portal'}
+                </p>
+              </div>
+              <span className="sb-live" style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', flexShrink: 0 }} />
+            </div>
+
+            {activeIndustries.length > 1 && (
+              <div style={{ position: 'relative', marginTop: 8 }} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setIndustryDropdownOpen(prev => !prev)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 11, padding: '7px 10px', fontSize: 10, fontWeight: 600, color: '#F5EFE4', cursor: 'pointer' }}>
+                  <span style={{ fontSize: 12 }}>{currentIndustry.icon}</span>
+                  <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentIndustry.label}</span>
+                  <ChevronDown size={11} style={{ color: '#8A7F70', transform: industryDropdownOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+                </button>
+                {industryDropdownOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: '#241E17', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', zIndex: 50, overflow: 'hidden' }}>
+                    {activeIndustries.map(slug => {
+                      const ind = INDUSTRIES[slug]; if (!ind) return null
+                      const isCurrent = slug === currentIndustrySlug
+                      return (
+                        <Link key={slug} href={`/dashboard/industries/${slug}/dashboard`}
+                          onClick={() => { handleIndustrySwitch(slug); setIndustryDropdownOpen(false) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 10, fontWeight: 600, background: isCurrent ? 'rgba(227,179,65,0.16)' : 'transparent', color: isCurrent ? '#F3D58A' : '#B8AE9E', textDecoration: 'none' }}>
+                          <span style={{ fontSize: 13 }}>{ind.icon}</span>
+                          <span style={{ flex: 1 }}>{ind.label}</span>
+                          {isCurrent && <span style={{ fontSize: 8, background: 'rgba(227,179,65,0.22)', color: '#F3D58A', padding: '2px 8px', borderRadius: 20, fontWeight: 800, letterSpacing: 1 }}>ACTIVE</span>}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ height: 1, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent)', margin: '0 12px', flexShrink: 0 }} />
+
+          {/* NAV */}
+          <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', padding: '8px 8px 8px', display: 'flex', flexDirection: 'column', gap: 2 }} className="scroll-hide">
+
+            {role === 'employee' && empPermissions.length > 0 && (
+              <div style={{ padding: '2px 6px 8px' }}>
+                <p style={{ fontSize: 8, fontWeight: 800, color: '#8A7F70', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>Your Access</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {empPermissions.map(pId => {
+                    const p = PERM_LABELS[pId]; if (!p) return null
+                    return <span key={pId} style={{ fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: p.bg, color: p.color, border: `1px solid ${p.color}33` }}>{p.label}</span>
+                  })}
+                </div>
+              </div>
+            )}
+
+            {navGroups.map((group) => {
+              const isOpen_ = openSections[group.section] ?? true
+              const hasActive = group.items.some(item => isActive(item.href))
+              const locked = role === 'admin' && isSectionLocked(group.section)
+              return (
+                <div key={group.section} style={{ marginBottom: 2 }}>
+                  <button onClick={() => toggleSection(group.section)} className="sb-section"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                    <span style={{ fontSize: 12, opacity: locked ? 0.45 : 0.9 }}>{group.icon}</span>
+                    <span style={{ flex: 1, textAlign: 'left', fontSize: 8.5, fontWeight: 800, color: hasActive ? '#E3B341' : '#8A7F70', textTransform: 'uppercase', letterSpacing: 2 }}>{group.section}</span>
+                    {locked && (
+                      <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 7px', borderRadius: 20, background: 'rgba(227,179,65,0.16)', color: '#F3D58A', border: '1px solid rgba(227,179,65,0.28)', display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                        <Lock size={8} /> Upgrade
+                      </span>
+                    )}
+                    <ChevronDown size={11} style={{ color: '#6F6558', transform: isOpen_ ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', flexShrink: 0 }} />
+                  </button>
+
+                  <div style={{ overflow: 'hidden', maxHeight: isOpen_ ? 600 : 0, opacity: isOpen_ ? 1 : 0, transition: 'max-height 0.22s ease, opacity 0.18s ease' }}>
+                    <div style={{ paddingTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {locked ? (
+                        // Whole section gated (e.g. Finance on Starter) — single upgrade prompt
+                        // instead of dead-end nav items.
+                        <Link href="/dashboard/settings/company" onClick={onClose}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 11,
+                            background: 'rgba(227,179,65,0.08)', border: '1px dashed rgba(227,179,65,0.40)',
+                            color: '#F3D58A', fontWeight: 600, fontSize: 10, textDecoration: 'none',
+                          }}>
+                          <Lock size={12} />
+                          <span>Available on Professional plan — Upgrade to unlock</span>
+                        </Link>
+                      ) : (
+                        group.items.map((item) => {
+                          const itemLocked = role === 'admin' && isItemLocked(item.label)
+                          if (itemLocked) {
+                            return (
+                              <Link key={item.label} href="/dashboard/settings/company" onClick={onClose}
+                                className="sb-item" data-active="false"
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 11,
+                                  color: '#6F6558', fontWeight: 500, fontSize: 11.5, textDecoration: 'none',
+                                }}>
+                                <span style={{ width: 22, height: 22, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, lineHeight: 1, flexShrink: 0, background: 'rgba(255,255,255,0.03)', opacity: 0.5 }}>{item.icon}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                                <Lock size={10} style={{ flexShrink: 0 }} />
+                              </Link>
+                            )
+                          }
+                          const active = isActive(item.href)
+                          const badge = getBadge(item.href)
+                          return (
+                            <Link key={item.label} href={item.href} onClick={onClose}
+                              className="sb-item" data-active={active ? 'true' : 'false'}
+                              style={{
+                                position: 'relative',
+                                display: 'flex', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 11,
+                                background: active ? 'linear-gradient(90deg,rgba(227,179,65,0.20),rgba(227,179,65,0.05))' : undefined,
+                                color: active ? '#FBEBC0' : '#B8AE9E',
+                                fontWeight: active ? 700 : 500,
+                                fontSize: 11.5, textDecoration: 'none',
+                                boxShadow: active ? 'inset 0 0 0 1px rgba(227,179,65,0.28)' : 'none',
+                              }}>
+                              {active && (
+                                <span aria-hidden style={{ position: 'absolute', left: 3, top: 8, bottom: 8, width: 3, borderRadius: 3, background: 'linear-gradient(180deg,#F3D58A,#B8860B)', boxShadow: '0 0 10px rgba(227,179,65,0.6)' }} />
+                              )}
+                              <span style={{ width: 22, height: 22, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, lineHeight: 1, flexShrink: 0, background: active ? 'rgba(227,179,65,0.22)' : 'rgba(255,255,255,0.05)' }}>{item.icon}</span>
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                              {badge && (
+                                <span style={{ fontSize: 8.5, fontWeight: 700, padding: '1px 6px', borderRadius: 20, flexShrink: 0, ...getBadgeStyle(item.href, active) }}>
+                                  {badge}
+                                </span>
+                              )}
+                            </Link>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </nav>
+
+          <div style={{ height: 1, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent)', margin: '0 12px', flexShrink: 0 }} />
+
+          {/* USER FOOTER */}
+          <div style={{ padding: '10px', paddingBottom: 'calc(10px + env(safe-area-inset-bottom))', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '8px 9px' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 10, background: `linear-gradient(135deg,${avatarColor.from},${avatarColor.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0, boxShadow: '0 0 0 2px rgba(255,255,255,0.10)' }}>
+                {userInitials}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <p style={{ fontSize: 11.5, fontWeight: 700, color: '#FFFFFF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName.split(' ')[0]}</p>
+                  <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0, background: role === 'admin' ? 'rgba(227,179,65,0.18)' : 'rgba(96,165,250,0.18)', color: role === 'admin' ? '#F3D58A' : '#93C5FD' }}>
+                    {role === 'admin' ? 'Admin' : 'Staff'}
+                  </span>
+                </div>
+                <p style={{ fontSize: 9, color: '#8A7F70', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userCompany}</p>
+              </div>
+              <button onClick={handleLogout} title="Logout" className="sb-logout"
+                style={{ width: 28, height: 28, borderRadius: 9, border: '1px solid rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#8A7F70', flexShrink: 0 }}>
+                <LogOut size={13} />
+              </button>
+            </div>
+          </div>
+
+        </div>
       </aside>
 
       <style>{`
@@ -667,6 +676,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         .scroll-hide { scrollbar-width: none; }
         .scroll-hide::-webkit-scrollbar { display: none; }
         @media (min-width: 1024px) { .lg\\:hidden { display: none !important; } }
+        .sb-item { transition: background 0.15s ease, color 0.15s ease; }
+        .sb-item[data-active="false"]:hover { background: rgba(255,255,255,0.06) !important; color: #FFFFFF !important; }
+        .sb-section:hover { background: rgba(255,255,255,0.04) !important; }
+        .sb-icon-btn:hover { background: rgba(255,255,255,0.12) !important; }
+        .sb-logout:hover { background: rgba(239,68,68,0.16) !important; color: #FCA5A5 !important; border-color: rgba(239,68,68,0.32) !important; }
+        @keyframes sbPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(52,211,153,0.55); }
+          70%  { box-shadow: 0 0 0 7px rgba(52,211,153,0); }
+          100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+        }
+        .sb-live { animation: sbPulse 2s infinite; }
+        @media (prefers-reduced-motion: reduce) { .sb-live { animation: none; } .sb-item { transition: none; } }
       `}</style>
     </>
   )

@@ -236,31 +236,76 @@ export function Header({
 
   const unreadCount = notifications.filter(n => !n.read).length
 
+  // Mark all unread as read — optimistic UI, rolls back if DB update fails.
   const markAllRead = async () => {
+    const previous = notifications
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase
+    if (!user) {
+      setNotifications(previous)
+      return
+    }
+
+    const { data, error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', user.id)
       .eq('is_read', false)
+      .select('id')
+
+    if (error || !data || data.length === 0) {
+      console.error('Mark all read failed:', error ?? '0 rows updated (RLS UPDATE policy?)')
+      setNotifications(previous)
+    }
   }
 
+  // Mark a single notification as read — optimistic UI, rolls back on failure.
   const markOneRead = async (id: string) => {
+    const previous = notifications
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase
+    if (!user) {
+      setNotifications(previous)
+      return
+    }
+
+    const { data, error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('id', id)
       .eq('user_id', user.id)
+      .select('id')
+
+    if (error || !data || data.length === 0) {
+      console.error('Mark read failed:', error ?? '0 rows updated (RLS UPDATE policy?)')
+      setNotifications(previous)
+    }
   }
 
-  const clearAll = () => {
-    // UI-only clear (keeps DB history). If you want a hard delete, swap this for a delete call.
-    setNotifications([])
+  // Hard delete from DB so notifications don't come back after refresh.
+  // Needs a DELETE RLS policy on `notifications` (auth.uid() = user_id).
+  const clearAll = async () => {
+    const previous = notifications
+    setNotifications([]) // optimistic UI
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setNotifications(previous)
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', user.id)
+      .select('id')
+
+    if (error || !data || data.length === 0) {
+      console.error('Clear all failed:', error ?? '0 rows deleted (RLS DELETE policy?)')
+      setNotifications(previous) // rollback
+    }
   }
 
   const handleLogout = async () => { await supabase.auth.signOut(); window.location.href = '/login' }

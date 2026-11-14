@@ -51,7 +51,7 @@ export default function DashboardShell({ children, userName, userEmail, userRole
           userEmail={userEmail}
           userRole={userRole}
         />
-        <main className="flex-1 overflow-y-auto p-5">{children}</main>
+        <main className="flex-1 overflow-y-auto px-0 pb-0 pt-0">{children}</main>
       </div>
     </div>
   )
