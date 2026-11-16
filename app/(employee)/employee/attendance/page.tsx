@@ -283,10 +283,10 @@ export default function EmployeeAttendancePage() {
         @media (prefers-reduced-motion: reduce) { .att-backdrop, .att-sheet { animation: none } }
       `}</style>
 
-      <div className="mx-auto max-w-2xl px-4 pb-28 pt-5">
+      <div className="mx-auto max-w-2xl px-3 pb-24 pt-3">
 
         {loadError && (
-          <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div role="alert" className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
             <span className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" /> {loadError}
             </span>
@@ -300,7 +300,7 @@ export default function EmployeeAttendancePage() {
         )}
 
         {/* ── HERO: title, month switcher, attendance rate, today ── */}
-        <section className="relative isolate mb-5 overflow-hidden rounded-3xl bg-slate-900 p-5 text-white shadow-xl sm:p-6">
+        <section className="relative isolate mb-3 overflow-hidden rounded-2xl bg-slate-900 p-3.5 text-white shadow-lg sm:p-4">
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
           <div
             aria-hidden
@@ -310,47 +310,47 @@ export default function EmployeeAttendancePage() {
               backgroundSize: '18px 18px',
             }}
           />
-          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 -z-10 h-56 w-56 rounded-full bg-indigo-500/30 blur-3xl" />
-          <div aria-hidden className="pointer-events-none absolute -bottom-20 left-6 -z-10 h-48 w-48 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -right-14 -top-14 -z-10 h-40 w-40 rounded-full bg-indigo-500/30 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-16 left-6 -z-10 h-36 w-36 rounded-full bg-emerald-500/20 blur-3xl" />
 
           <div className="flex items-center justify-between gap-3">
             <Link
               href="/employee"
-              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-100 ring-1 ring-white/15 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
+              className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-slate-100 ring-1 ring-white/15 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back
+              <ArrowLeft className="h-3 w-3" /> Back
             </Link>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-indigo-100 ring-1 ring-white/15">
-              <Clock3 className="h-3.5 w-3.5" /> {ROSTER_START} – {ROSTER_END}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-indigo-100 ring-1 ring-white/15">
+              <Clock3 className="h-3 w-3" /> {ROSTER_START} – {ROSTER_END}
             </span>
           </div>
 
-          <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-300">Employee Portal</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">My attendance</h1>
+          <p className="mt-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-indigo-300">Employee Portal</p>
+          <h1 className="mt-0.5 text-lg font-bold tracking-tight sm:text-xl">My attendance</h1>
 
           {/* Month nav */}
-          <div className="mt-4 inline-flex items-center rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur">
+          <div className="mt-2.5 inline-flex items-center rounded-full bg-white/10 p-0.5 ring-1 ring-white/15 backdrop-blur">
             <button
               onClick={goPrevMonth}
               aria-label="Previous month"
-              className="rounded-full p-2 text-slate-200 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
+              className="rounded-full p-1.5 text-slate-200 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <p className="w-36 text-center text-sm font-semibold">{monthName} {viewYear}</p>
+            <p className="w-32 text-center text-xs font-semibold">{monthName} {viewYear}</p>
             <button
               onClick={goNextMonth}
               disabled={isCurrentMonth}
               aria-label="Next month"
-              className="rounded-full p-2 text-slate-200 transition hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
+              className="rounded-full p-1.5 text-slate-200 transition hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </div>
 
           {/* Attendance rate ring */}
-          <div className="mt-5 flex items-center gap-4 rounded-2xl bg-white/[0.07] p-4 ring-1 ring-white/10 backdrop-blur">
-            <div className="relative h-24 w-24 flex-shrink-0">
+          <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/[0.07] p-3 ring-1 ring-white/10 backdrop-blur">
+            <div className="relative h-16 w-16 flex-shrink-0">
               <svg viewBox="0 0 110 110" className="h-full w-full -rotate-90">
                 <circle cx="55" cy="55" r={ringRadius} fill="none" strokeWidth="10" className="stroke-white/15" />
                 <circle
@@ -360,58 +360,58 @@ export default function EmployeeAttendancePage() {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-extrabold tabular-nums">{attendanceRate}%</span>
+                <span className="text-sm font-extrabold tabular-nums">{attendanceRate}%</span>
               </div>
             </div>
 
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Attendance rate</p>
-              <p className="mt-1 text-sm font-semibold">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Attendance rate</p>
+              <p className="mt-0.5 text-xs font-semibold">
                 {attendedScore % 1 === 0 ? attendedScore : attendedScore.toFixed(1)} of {countableDays.length} working days
               </p>
-              <p className="mt-0.5 text-xs text-slate-300">Holidays, leave and future days not counted</p>
+              <p className="mt-0.5 text-[10px] text-slate-300">Holidays, leave and future days not counted</p>
             </div>
           </div>
 
           {/* Today (current month only) */}
           {isCurrentMonth && (
-            <div className="mt-4">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-indigo-200">
-                  <CalendarDays className="h-3.5 w-3.5" /> Today
+            <div className="mt-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-indigo-200">
+                  <CalendarDays className="h-3 w-3" /> Today
                 </span>
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-xs font-medium text-white/80">
                   {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/[0.07] p-3.5 ring-1 ring-white/10">
-                  <p className="flex items-center gap-1.5 text-xs text-emerald-300">
-                    <LogIn className="h-3.5 w-3.5" /> Punch in
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-white/[0.07] p-2.5 ring-1 ring-white/10">
+                  <p className="flex items-center gap-1 text-[10px] text-emerald-300">
+                    <LogIn className="h-3 w-3" /> Punch in
                   </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums">{fmtTime(todayRec?.checkIn)}</p>
+                  <p className="mt-0.5 text-base font-bold tabular-nums">{fmtTime(todayRec?.checkIn)}</p>
                 </div>
-                <div className="rounded-2xl bg-white/[0.07] p-3.5 ring-1 ring-white/10">
-                  <p className="flex items-center gap-1.5 text-xs text-rose-300">
-                    <LogOut className="h-3.5 w-3.5" /> Punch out
+                <div className="rounded-xl bg-white/[0.07] p-2.5 ring-1 ring-white/10">
+                  <p className="flex items-center gap-1 text-[10px] text-rose-300">
+                    <LogOut className="h-3 w-3" /> Punch out
                   </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums">{fmtTime(todayRec?.checkOut)}</p>
+                  <p className="mt-0.5 text-base font-bold tabular-nums">{fmtTime(todayRec?.checkOut)}</p>
                 </div>
               </div>
 
-              <div className="mt-3.5">
-                <div className="mb-1.5 flex items-baseline justify-between text-xs text-white/60">
+              <div className="mt-2.5">
+                <div className="mb-1 flex items-baseline justify-between text-[10px] text-white/60">
                   <span>Working hours</span>
                   <span>
-                    <span className="text-sm font-semibold tabular-nums text-white">
+                    <span className="text-xs font-semibold tabular-nums text-white">
                       {calcWorkingHrs(todayRec?.checkIn, todayRec?.checkOut)}
                     </span>{' '}
                     of 09:00
                   </span>
                 </div>
                 <div
-                  className="h-2 overflow-hidden rounded-full bg-white/10"
+                  className="h-1.5 overflow-hidden rounded-full bg-white/10"
                   role="progressbar"
                   aria-valuemin={0}
                   aria-valuemax={100}
@@ -429,13 +429,13 @@ export default function EmployeeAttendancePage() {
         </section>
 
         {/* ── MONTH SUMMARY: distribution bar + legend ── */}
-        <section className="mb-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-900">Month summary</h2>
-            <span className="text-xs font-medium text-slate-400">{statTotal} recorded day{statTotal === 1 ? '' : 's'}</span>
+        <section className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-xs font-bold text-slate-900">Month summary</h2>
+            <span className="text-[10px] font-medium text-slate-400">{statTotal} recorded day{statTotal === 1 ? '' : 's'}</span>
           </div>
 
-          <div className="mb-4 flex h-3 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mb-3 flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
             {statTotal > 0 && STAT_TABS.filter(t => statCounts[t.key] > 0).map(t => (
               <div
                 key={t.key}
@@ -446,11 +446,11 @@ export default function EmployeeAttendancePage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1.5">
             {STAT_TABS.map(t => (
-              <div key={t.key} className="rounded-2xl bg-slate-50 px-2 py-2.5 text-center ring-1 ring-slate-100">
-                <p className="text-xl font-extrabold tabular-nums leading-none text-slate-900">{statCounts[t.key]}</p>
-                <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] font-semibold text-slate-500">
+              <div key={t.key} className="rounded-xl bg-slate-50 px-1.5 py-1.5 text-center ring-1 ring-slate-100">
+                <p className="text-base font-extrabold tabular-nums leading-none text-slate-900">{statCounts[t.key]}</p>
+                <p className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold text-slate-500">
                   <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${t.bar}`} />
                   <span className="truncate">{t.label}</span>
                 </p>
@@ -460,14 +460,14 @@ export default function EmployeeAttendancePage() {
         </section>
 
         {/* ── CALENDAR ── */}
-        <section className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
+        <section className="rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm">
+          <div className="mb-1.5 grid grid-cols-7 gap-1">
             {WEEKDAYS.map(w => (
-              <p key={w} className="text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">{w}</p>
+              <p key={w} className="text-center text-[10px] font-semibold uppercase tracking-wide text-slate-400">{w}</p>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: leadingBlanks }).map((_, i) => (
               <div key={`blank-${i}`} aria-hidden />
             ))}
@@ -480,7 +480,7 @@ export default function EmployeeAttendancePage() {
                   <div
                     key={c.dateStr}
                     aria-hidden
-                    className="flex aspect-square items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm tabular-nums text-slate-300"
+                    className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-slate-200 text-xs tabular-nums text-slate-300"
                   >
                     {c.day}
                   </div>
@@ -493,16 +493,16 @@ export default function EmployeeAttendancePage() {
                   onClick={() => setSelectedDay(c.dateStr)}
                   aria-haspopup="dialog"
                   aria-label={`${c.dayName} ${c.fullLabel}, ${c.status.replace(/_/g, ' ')}`}
-                  className={`relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-2xl text-sm font-bold tabular-nums ring-1 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${soft.cell} ${
+                  className={`relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-xs font-bold tabular-nums ring-1 transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-400/40 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${soft.cell} ${
                     isSelected
-                      ? '!ring-2 !ring-slate-900 ring-offset-2 ring-offset-white'
+                      ? '!ring-2 !ring-slate-900 ring-offset-1 ring-offset-white'
                       : isToday
-                        ? '!ring-2 !ring-indigo-500 ring-offset-2 ring-offset-white'
+                        ? '!ring-2 !ring-indigo-500 ring-offset-1 ring-offset-white'
                         : ''
                   }`}
                 >
                   {c.day}
-                  <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${soft.dot}`} />
+                  <span aria-hidden className={`h-1 w-1 rounded-full ${soft.dot}`} />
                 </button>
               )
             })}
@@ -522,7 +522,7 @@ export default function EmployeeAttendancePage() {
               className="att-sheet w-full max-w-md overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
             >
               {/* Header */}
-              <div className="relative isolate overflow-hidden bg-slate-900 px-5 pb-5 pt-5 text-white">
+              <div className="relative isolate overflow-hidden bg-slate-900 px-4 pb-4 pt-4 text-white">
                 <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
                 <div
                   aria-hidden
@@ -535,18 +535,18 @@ export default function EmployeeAttendancePage() {
                 <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 -z-10 h-36 w-36 rounded-full bg-indigo-500/30 blur-3xl" />
 
                 <div className="flex items-start gap-3.5">
-                  <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-2xl font-extrabold tabular-nums shadow-lg ${STATUS_CELL[selected.status] ?? 'bg-slate-200 text-slate-600'}`}>
+                  <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-lg font-extrabold tabular-nums shadow-lg ${STATUS_CELL[selected.status] ?? 'bg-slate-200 text-slate-600'}`}>
                     {selected.day}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h2 id="att-dialog-title" className="text-lg font-bold tracking-tight">
+                    <h2 id="att-dialog-title" className="text-base font-bold tracking-tight">
                       {selected.dayName}
                     </h2>
-                    <p className="text-sm text-slate-300">
+                    <p className="text-xs text-slate-300">
                       {selected.fullLabel} {viewYear}
                       {selected.dateStr === todayStr && <span className="ml-2 text-xs font-semibold text-emerald-300">Today</span>}
                     </p>
-                    <span className="mt-2 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset ring-white/25">
+                    <span className="mt-1.5 inline-block rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold capitalize ring-1 ring-inset ring-white/25">
                       {selected.status.replace(/_/g, ' ')}
                     </span>
                   </div>
@@ -562,33 +562,33 @@ export default function EmployeeAttendancePage() {
               </div>
 
               {/* Body */}
-              <div className="px-5 pb-6 pt-4">
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="rounded-2xl bg-emerald-50 p-3 ring-1 ring-emerald-100">
+              <div className="px-4 pb-4 pt-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-emerald-50 p-2.5 ring-1 ring-emerald-100">
                     <p className="flex items-center gap-1 text-xs font-semibold text-emerald-700">
                       <LogIn className="h-3.5 w-3.5" /> In
                     </p>
-                    <p className="mt-1 text-base font-bold tabular-nums text-slate-900">{fmtTime(selected.checkIn)}</p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">{fmtTime(selected.checkIn)}</p>
                   </div>
-                  <div className="rounded-2xl bg-rose-50 p-3 ring-1 ring-rose-100">
+                  <div className="rounded-xl bg-rose-50 p-2.5 ring-1 ring-rose-100">
                     <p className="flex items-center gap-1 text-xs font-semibold text-rose-600">
                       <LogOut className="h-3.5 w-3.5" /> Out
                     </p>
-                    <p className="mt-1 text-base font-bold tabular-nums text-slate-900">{fmtTime(selected.checkOut)}</p>
+                    <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">{fmtTime(selected.checkOut)}</p>
                   </div>
-                  <div className="rounded-2xl bg-indigo-50 p-3 ring-1 ring-indigo-100">
+                  <div className="rounded-xl bg-indigo-50 p-2.5 ring-1 ring-indigo-100">
                     <p className="flex items-center gap-1 text-xs font-semibold text-indigo-700">
                       <Hourglass className="h-3.5 w-3.5" /> Hours
                     </p>
-                    <p className="mt-1 text-base font-bold tabular-nums text-slate-900">
+                    <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">
                       {calcWorkingHrs(selected.checkIn, selected.checkOut)}
                     </p>
                   </div>
                 </div>
 
                 {selected.checkIn && selected.checkOut && (
-                  <div className="mt-4">
-                    <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-500">
+                  <div className="mt-3">
+                    <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
                       <span>Roster {ROSTER_START} – {ROSTER_END}</span>
                       <span>{Math.min(100, Math.round((calcWorkingMins(selected.checkIn, selected.checkOut) / ROSTER_MINS) * 100))}% of 09:00</span>
                     </div>
@@ -602,21 +602,21 @@ export default function EmployeeAttendancePage() {
                 )}
 
                 {!selected.checkIn && !selected.checkOut && (
-                  <p className="mt-4 rounded-2xl border border-dashed border-slate-200 py-3 text-center text-sm text-slate-400">
+                  <p className="mt-3 rounded-xl border border-dashed border-slate-200 py-2 text-center text-xs text-slate-400">
                     No punch recorded for this day.
                   </p>
                 )}
 
                 {(selected.checkInAddr || selected.checkOutAddr) && (
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-3 space-y-1.5">
                     {selected.checkInAddr && (
-                      <p className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-snug text-slate-600 ring-1 ring-slate-100">
+                      <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-2 text-[11px] leading-snug text-slate-600 ring-1 ring-slate-100">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-600" />
                         <span className="break-words">In: {selected.checkInAddr}</span>
                       </p>
                     )}
                     {selected.checkOutAddr && (
-                      <p className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-xs leading-snug text-slate-600 ring-1 ring-slate-100">
+                      <p className="flex items-start gap-2 rounded-lg bg-slate-50 p-2 text-[11px] leading-snug text-slate-600 ring-1 ring-slate-100">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-500" />
                         <span className="break-words">Out: {selected.checkOutAddr}</span>
                       </p>
@@ -628,7 +628,7 @@ export default function EmployeeAttendancePage() {
           </div>
         )}
 
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
           <MousePointerClick className="h-3.5 w-3.5" /> Tap a date to see its punch details
         </p>
       </div>

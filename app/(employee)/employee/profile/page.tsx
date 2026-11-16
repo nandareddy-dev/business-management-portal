@@ -71,7 +71,7 @@ const show = (value: unknown) => {
 
 function Chip({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-slate-100 ring-1 ring-white/15 sm:px-3 sm:text-xs">
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-100 ring-1 ring-white/15">
       {icon}
       {children}
     </span>
@@ -90,12 +90,12 @@ function SectionCard({
   children: ReactNode
 }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}>
-          <Icon size={18} />
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${tone}`}>
+          <Icon size={15} />
         </div>
-        <h2 className="text-sm font-bold text-slate-900 sm:text-base">{title}</h2>
+        <h2 className="text-xs font-bold text-slate-900">{title}</h2>
       </div>
       <div className="divide-y divide-slate-100">{children}</div>
     </section>
@@ -116,14 +116,14 @@ function InfoRow({
   const empty = value === '—'
 
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
-      <span className="flex shrink-0 items-center gap-2 text-xs font-medium text-slate-500 sm:text-sm">
-        <Icon size={15} className="text-slate-400" />
+    <div className="flex items-center justify-between gap-3 px-3 py-2">
+      <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-slate-500">
+        <Icon size={13} className="text-slate-400" />
         {label}
       </span>
       <span
         title={value}
-        className={`min-w-0 truncate text-right text-sm font-semibold ${
+        className={`min-w-0 truncate text-right text-xs font-semibold ${
           empty ? 'text-slate-300' : 'text-slate-900'
         } ${mono ? 'font-mono tracking-tight' : ''}`}
       >
@@ -162,19 +162,19 @@ export default async function EmployeeProfilePage() {
   const tenure = tenureLabel(employee.join_date)
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white px-4 py-6 pb-28 sm:px-8">
-      <div className="mx-auto max-w-2xl">
+    <main className="min-h-screen bg-gradient-to-b from-indigo-50/70 via-slate-50 to-white px-3 py-3 pb-24 sm:px-6">
+      <div className="mx-auto max-w-3xl">
         {/* Back link */}
         <Link
           href="/employee"
-          className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600"
+          className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={14} />
           Back to portal
         </Link>
 
         {/* Hero */}
-        <section className="relative isolate mb-6 overflow-hidden rounded-3xl bg-slate-900 p-5 text-white shadow-xl sm:p-8">
+        <section className="relative isolate mb-3 overflow-hidden rounded-2xl bg-slate-900 p-3.5 text-white shadow-lg sm:p-4">
           <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950" />
           <div
             className="pointer-events-none absolute inset-0 -z-10"
@@ -184,45 +184,46 @@ export default async function EmployeeProfilePage() {
               backgroundSize: '18px 18px',
             }}
           />
-          <div className="pointer-events-none absolute -right-20 -top-20 -z-10 h-64 w-64 rounded-full bg-indigo-500/30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 left-6 -z-10 h-56 w-56 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div className="pointer-events-none absolute -right-14 -top-14 -z-10 h-40 w-40 rounded-full bg-indigo-500/30 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 left-6 -z-10 h-36 w-36 rounded-full bg-emerald-500/20 blur-3xl" />
 
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-indigo-300 sm:text-[11px] sm:tracking-[0.2em]">
+          <p className="mb-2.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-indigo-300">
             Employee Portal · My Profile
           </p>
 
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold ring-1 ring-white/25 backdrop-blur sm:h-20 sm:w-20 sm:text-2xl">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-base font-bold ring-1 ring-white/25 backdrop-blur">
               {initials}
             </div>
 
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold sm:text-3xl">
+              <h1 className="truncate text-base font-bold sm:text-lg">
                 {employee.full_name}
               </h1>
-              <p className="mt-0.5 truncate text-xs text-slate-300 sm:text-sm">
+              <p className="mt-0.5 truncate text-[11px] text-slate-300">
                 {employee.designation ?? 'Employee'} · {employee.department ?? '—'}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Chip icon={<BadgeCheck size={14} />}>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <Chip icon={<BadgeCheck size={12} />}>
               {employee.employee_code ?? employee.employee_id ?? 'N/A'}
             </Chip>
 
             {employee.is_active && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-300/30 sm:px-3 sm:text-xs">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-200 ring-1 ring-emerald-300/30">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 Active
               </span>
             )}
 
-            {tenure && <Chip icon={<Clock size={14} />}>{tenure} with us</Chip>}
+            {tenure && <Chip icon={<Clock size={12} />}>{tenure} with us</Chip>}
           </div>
         </section>
 
-        <div className="space-y-5">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
           {/* Personal information */}
           <SectionCard
             title="Personal information"
@@ -259,25 +260,26 @@ export default async function EmployeeProfilePage() {
             <InfoRow icon={ShieldCheck} label="ESIC number" value={show(employee.esic_number)} mono />
           </SectionCard>
 
-          {/* Salary — masked by default, eye-toggle to reveal */}
-          {employee.salary && <SalaryReveal amount={Number(employee.salary)} />}
-
           {/* Security */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                <Lock size={18} />
+          <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="mb-2.5 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                <Lock size={15} />
               </div>
-              <h2 className="text-sm font-bold text-slate-900 sm:text-base">Security</h2>
+              <h2 className="text-xs font-bold text-slate-900">Security</h2>
             </div>
             <ChangePasswordModal />
           </section>
+          </div>
+
+          {/* Salary — masked by default, eye-toggle to reveal */}
+          {employee.salary && <SalaryReveal amount={Number(employee.salary)} />}
 
           <Link
             href="/employee"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={14} />
             Back to dashboard
           </Link>
         </div>
