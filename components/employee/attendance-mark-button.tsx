@@ -42,16 +42,16 @@ function StepNode({
   tone: string
 }) {
   return (
-    <div className="flex w-20 flex-col items-center text-center">
+    <div className="flex w-16 flex-col items-center text-center">
       <div
-        className={`flex h-11 w-11 items-center justify-center rounded-2xl ring-1 transition ${
+        className={`flex h-8 w-8 items-center justify-center rounded-xl ring-1 transition ${
           done ? tone : 'bg-slate-100 text-slate-400 ring-slate-200'
         }`}
       >
-        <Icon size={18} />
+        <Icon size={15} />
       </div>
-      <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className={`text-sm font-bold tabular-nums ${done ? 'text-slate-900' : 'text-slate-300'}`}>{time}</p>
+      <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className={`text-xs font-bold tabular-nums ${done ? 'text-slate-900' : 'text-slate-300'}`}>{time}</p>
     </div>
   )
 }
@@ -60,12 +60,12 @@ function VerifiedChip({ verified }: { verified: boolean | null }) {
   if (verified === null) return null
 
   return verified ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-      <MapPin size={12} /> Location verified
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+      <MapPin size={10} /> Location verified
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-      <MapPin size={12} /> Unverified
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+      <MapPin size={10} /> Unverified
     </span>
   )
 }
@@ -287,32 +287,32 @@ export function AttendanceMarkButton({
   /* ------------------------------------ View ------------------------------------ */
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Live clock */}
       <div className="text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">India Standard Time</p>
-        <p className="mt-1 flex items-baseline justify-center gap-1.5 tabular-nums">
-          <span className="text-5xl font-extrabold tracking-tight text-slate-900">{clock}</span>
-          {meridiem && <span className="text-sm font-bold uppercase text-slate-400">{meridiem}</span>}
+        <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400">India Standard Time</p>
+        <p className="mt-0.5 flex items-baseline justify-center gap-1 tabular-nums">
+          <span className="text-3xl font-extrabold tracking-tight text-slate-900">{clock}</span>
+          {meridiem && <span className="text-xs font-bold uppercase text-slate-400">{meridiem}</span>}
         </p>
       </div>
 
       {/* Big punch button / completed state */}
       {checkedIn && checkedOut ? (
-        <div className="flex flex-col items-center gap-2 rounded-3xl bg-gradient-to-b from-emerald-50 to-white py-6 ring-1 ring-emerald-100">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-200">
-            <CheckCircle2 size={32} />
+        <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-gradient-to-b from-emerald-50 to-white py-3 ring-1 ring-emerald-100">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md shadow-emerald-200">
+            <CheckCircle2 size={22} />
           </div>
-          <p className="text-sm font-bold text-emerald-800">Attendance complete for today</p>
+          <p className="text-xs font-bold text-emerald-800">Attendance complete for today</p>
           {workedLabel && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-emerald-100">
-              <Clock3 size={13} className="text-emerald-600" /> Worked {workedLabel}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-emerald-100">
+              <Clock3 size={11} className="text-emerald-600" /> Worked {workedLabel}
             </span>
           )}
           <VerifiedChip verified={checkInVerified === true ? true : null} />
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-1.5">
           {(() => {
             const isIn = !checkedIn
             const onClick = isIn ? handleCheckIn : handleCheckOut
@@ -323,7 +323,7 @@ export function AttendanceMarkButton({
                 onClick={onClick}
                 disabled={disabled}
                 aria-label={isIn ? 'Check in' : 'Check out'}
-                className="group relative flex h-32 w-32 items-center justify-center disabled:opacity-60"
+                className="group relative flex h-24 w-24 items-center justify-center disabled:opacity-60"
               >
                 {!loading && (
                   <span
@@ -333,23 +333,23 @@ export function AttendanceMarkButton({
                   />
                 )}
                 <span
-                  className={`absolute inset-2 rounded-full ring-4 ${
+                  className={`absolute inset-1.5 rounded-full ring-[3px] ${
                     isIn ? 'ring-emerald-100' : 'ring-rose-100'
                   }`}
                 />
                 <span
-                  className={`relative flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-full text-white shadow-xl transition group-active:scale-95 ${
+                  className={`relative flex h-[4.25rem] w-[4.25rem] flex-col items-center justify-center gap-0.5 rounded-full text-white shadow-lg transition group-active:scale-95 ${
                     isIn
                       ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-300/60'
                       : 'bg-gradient-to-br from-rose-400 to-rose-600 shadow-rose-300/60'
                   }`}
                 >
                   {loading ? (
-                    <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-white border-t-transparent" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   ) : (
-                    <Fingerprint size={32} />
+                    <Fingerprint size={24} />
                   )}
-                  <span className="text-[11px] font-bold uppercase tracking-wider">
+                  <span className="text-[9px] font-bold uppercase tracking-wider">
                     {loading ? 'Marking...' : isIn ? 'Check in' : 'Check out'}
                   </span>
                 </span>
@@ -357,7 +357,7 @@ export function AttendanceMarkButton({
             )
           })()}
 
-          <p className="text-xs text-slate-400">
+          <p className="text-[11px] text-slate-400">
             {!checkedIn ? 'Tap to mark your attendance' : 'Tap to end your day'}
           </p>
         </div>
@@ -373,7 +373,7 @@ export function AttendanceMarkButton({
           tone="bg-emerald-50 text-emerald-600 ring-emerald-200"
         />
 
-        <div className="mt-5 h-1 max-w-[120px] flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-[15px] h-0.5 max-w-[100px] flex-1 overflow-hidden rounded-full bg-slate-100">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-rose-400 transition-all duration-700"
             style={{ width: `${lineFill}%` }}
@@ -398,7 +398,7 @@ export function AttendanceMarkButton({
       {/* Status message */}
       {message && tone && (
         <div
-          className={`flex items-start gap-2 rounded-2xl px-3.5 py-3 text-sm font-medium ring-1 ${
+          className={`flex items-start gap-2 rounded-xl px-3 py-2 text-xs font-medium ring-1 ${
             tone === 'error'
               ? 'bg-rose-50 text-rose-700 ring-rose-100'
               : tone === 'warning'
@@ -407,11 +407,11 @@ export function AttendanceMarkButton({
           }`}
         >
           {tone === 'error' ? (
-            <XCircle size={16} className="mt-0.5 shrink-0" />
+            <XCircle size={14} className="mt-0.5 shrink-0" />
           ) : tone === 'warning' ? (
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           ) : (
-            <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+            <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
           )}
           <span className="min-w-0 break-words">{message}</span>
         </div>
@@ -419,33 +419,33 @@ export function AttendanceMarkButton({
 
       {/* Regularization request */}
       {showRegularize && (
-        <div className="space-y-3 rounded-2xl bg-gradient-to-b from-amber-50 to-white p-4 ring-1 ring-amber-200">
+        <div className="space-y-2 rounded-xl bg-gradient-to-b from-amber-50 to-white p-3 ring-1 ring-amber-200">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-              <MapPin size={16} />
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+              <MapPin size={13} />
             </div>
-            <p className="text-sm font-bold text-amber-900">Regularization request</p>
+            <p className="text-xs font-bold text-amber-900">Regularization request</p>
           </div>
 
           <textarea
             value={regularizeReason}
             onChange={e => setRegularizeReason(e.target.value)}
             placeholder="Reason (e.g. client site visit)"
-            rows={3}
-            className="w-full rounded-xl border border-amber-200 bg-white p-3 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm"
+            rows={2}
+            className="w-full rounded-xl border border-amber-200 bg-white p-2.5 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:text-sm"
           />
 
           <div className="flex gap-2">
             <button
               onClick={() => setShowRegularize(false)}
-              className="flex-1 rounded-xl border border-amber-200 bg-white py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-50"
+              className="flex-1 rounded-lg border border-amber-200 bg-white py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-50"
             >
               Cancel
             </button>
             <button
               onClick={submitRegularization}
               disabled={!regularizeReason.trim()}
-              className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-200 transition hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:shadow-none"
+              className="flex-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 py-1.5 text-xs font-semibold text-white shadow shadow-amber-200 transition hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:shadow-none"
             >
               Submit
             </button>
