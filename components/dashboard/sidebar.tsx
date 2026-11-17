@@ -23,7 +23,6 @@ const SECTION_PERMISSION: Record<string, string> = {
   'MY PIPELINE': 'pipeline',
   'PROJECTS':    'projects',
   'HR & ADMIN':  'hr',
-  'FINANCE':     'finance',
   'SYSTEM':      'pipeline',
   'WORK':        'pipeline',
   'ACCOUNT':     'pipeline',
@@ -32,10 +31,9 @@ const SECTION_PERMISSION: Record<string, string> = {
 // ── Plan-feature gating ──────────────────────────────────────────────────
 // Which subscription feature flag a sidebar section requires.
 // Sections not listed here are available on every plan (Pipeline, Projects, Settings).
-// Section-level lock — used for sections that are entirely gated (e.g. Finance).
+// Section-level lock — used for sections that are entirely gated.
 const SECTION_PLAN_FEATURE: Record<string, 'hrms' | 'billing' | 'projects'> = {
   'PROJECTS': 'projects',
-  'FINANCE':  'billing',
 }
 
 // Item-level lock — used within a section where some items are free on every plan
@@ -89,19 +87,6 @@ function buildNavGroups(industrySlug: string) {
       section: 'HR & ADMIN', icon: '👔',
       items: [
         { label: 'Team Members', icon: '👥', href: '/hr/employees'    },
-        { label: 'Attendance',   icon: '📅', href: '/hr/attendance'   },
-        { label: 'Work Reports', icon: '📝', href: '/hr/work-reports' },
-        { label: 'Pay Slips',    icon: '💵', href: '/hr/payslips'     },
-      ],
-    },
-    {
-      section: 'FINANCE', icon: '💳',
-      items: [
-        { label: 'Overview',    icon: '📊', href: `${IND}/finance`              },
-        { label: 'Quotations',  icon: '📋', href: `${IND}/finance/quotations`   },
-        { label: 'Invoices',    icon: '🧾', href: `${IND}/finance/invoices`     },
-        { label: 'Payments',    icon: '💳', href: `${IND}/finance/payments`     },
-        { label: 'Expenses',    icon: '💸', href: `${IND}/finance/expenses`     },
       ],
     },
     {
@@ -135,22 +120,6 @@ function buildNavGroups(industrySlug: string) {
         { label: 'My Projects', icon: '🏗️', href: `${IND}/projects` },
         { label: 'Clients',    icon: '👥', href: `${IND}/projects/clients`   },
         { label: 'Quotations', icon: '📋', href: `${IND}/finance/quotations` },
-      ],
-    },
-    {
-      section: 'HR & ADMIN', icon: '👔',
-      items: [
-        { label: 'Attendance',   icon: '📅', href: '/hr/attendance'   },
-        { label: 'Work Reports', icon: '📝', href: '/hr/work-reports' },
-        { label: 'My Pay Slips', icon: '💵', href: '/hr/payslips/my'  },
-      ],
-    },
-    {
-      section: 'FINANCE', icon: '💳',
-      items: [
-        { label: 'Overview',   icon: '📊', href: `${IND}/finance`            },
-        { label: 'Invoices',   icon: '🧾', href: `${IND}/finance/invoices`   },
-        { label: 'Payments',   icon: '💳', href: `${IND}/finance/payments`   },
       ],
     },
     {
@@ -215,7 +184,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [planFeaturesLoaded, setPlanFeaturesLoaded] = useState(false)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     'PIPELINE': true, 'MY PIPELINE': true, 'PROJECTS': false,
-    'HR & ADMIN': false, 'FINANCE': false, 'SYSTEM': false, 'ACCOUNT': true,
+    'HR & ADMIN': false, 'SYSTEM': false, 'ACCOUNT': true,
   })
 
   // Cached company_id so the realtime listener doesn't re-fetch auth/profile on every single event
@@ -446,7 +415,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     pipeline: { label: 'Pipeline', color: '#C4B5FD', bg: 'rgba(124,58,237,0.16)' },
     projects: { label: 'Projects', color: '#FDBA74', bg: 'rgba(234,88,12,0.16)' },
     hr:       { label: 'HR',       color: '#7DD3FC', bg: 'rgba(2,132,199,0.16)' },
-    finance:  { label: 'Finance',  color: '#86EFAC', bg: 'rgba(22,163,74,0.16)' },
   }
 
   const getBadgeStyle = (href: string, active: boolean): React.CSSProperties => {
